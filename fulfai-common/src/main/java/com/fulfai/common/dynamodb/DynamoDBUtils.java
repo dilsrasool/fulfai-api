@@ -1,5 +1,6 @@
 package com.fulfai.common.dynamodb;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
@@ -15,6 +16,9 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
+import software.amazon.awssdk.enhanced.dynamodb.model.DeleteItemEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.TransactWriteItemsEnhancedRequest;
@@ -28,27 +32,35 @@ public class DynamoDBUtils {
 
     public static <T> T getItem(DynamoDbTable<T> table, String partitionKey) {
         Log.debugf("DYNAMODB_GET: table=%s, partitionKey=%s", table.tableName(), partitionKey);
-        return table.getItem(r -> r.key(k -> k.partitionValue(partitionKey)));
+        Key key = Key.builder().partitionValue(partitionKey).build();
+        return table.getItem(GetItemEnhancedRequest.builder().key(key).build());
     }
 
     public static <T> T getItem(DynamoDbTable<T> table, String partitionKey, String sortKey) {
         Log.debugf("DYNAMODB_GET: table=%s, partitionKey=%s, sortKey=%s", table.tableName(), partitionKey, sortKey);
-        return table.getItem(r -> r.key(k -> k.partitionValue(partitionKey).sortValue(sortKey)));
+        Key key = Key.builder().partitionValue(partitionKey).sortValue(sortKey).build();
+        return table.getItem(GetItemEnhancedRequest.builder().key(key).build());
     }
 
+    @SuppressWarnings("unchecked")
     public static <T> void putItem(DynamoDbTable<T> table, T item) {
         Log.debugf("DYNAMODB_PUT: table=%s, item=%s", table.tableName(), item);
-        table.putItem(item);
+        PutItemEnhancedRequest<T> request = PutItemEnhancedRequest.builder((Class<T>) item.getClass())
+                .item(item)
+                .build();
+        table.putItem(request);
     }
 
     public static <T> void deleteItem(DynamoDbTable<T> table, String partitionKey) {
         Log.debugf("DYNAMODB_DELETE: table=%s, partitionKey=%s", table.tableName(), partitionKey);
-        table.deleteItem(r -> r.key(k -> k.partitionValue(partitionKey)));
+        Key key = Key.builder().partitionValue(partitionKey).build();
+        table.deleteItem(DeleteItemEnhancedRequest.builder().key(key).build());
     }
 
     public static <T> void deleteItem(DynamoDbTable<T> table, String partitionKey, String sortKey) {
         Log.debugf("DYNAMODB_DELETE: table=%s, partitionKey=%s, sortKey=%s", table.tableName(), partitionKey, sortKey);
-        table.deleteItem(r -> r.key(k -> k.partitionValue(partitionKey).sortValue(sortKey)));
+        Key key = Key.builder().partitionValue(partitionKey).sortValue(sortKey).build();
+        table.deleteItem(DeleteItemEnhancedRequest.builder().key(key).build());
     }
 
     // Query by partition key with pagination
@@ -60,6 +72,25 @@ public class DynamoDBUtils {
         int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
         QueryEnhancedRequest.Builder requestBuilder = QueryEnhancedRequest.builder()
                 .queryConditional(QueryConditional.keyEqualTo(Key.builder().partitionValue(partitionKey).build()))
+                .limit(pageSize);
+
+        if (nextToken != null && !nextToken.isEmpty()) {
+            requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+        }
+
+        return executeQuery(table, requestBuilder.build());
+    }
+
+    // Query by partition key with pagination (descending order by sort key)
+    public static <T> PaginatedResponse<T> queryByPartitionKeyDescending(DynamoDbTable<T> table, String partitionKey,
+            String nextToken, Integer limit) {
+        Log.debugf("DYNAMODB_QUERY_DESC: table=%s, partitionKey=%s, nextToken=%s, limit=%d",
+                table.tableName(), partitionKey, nextToken, limit);
+
+        int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
+        QueryEnhancedRequest.Builder requestBuilder = QueryEnhancedRequest.builder()
+                .queryConditional(QueryConditional.keyEqualTo(Key.builder().partitionValue(partitionKey).build()))
+                .scanIndexForward(false)
                 .limit(pageSize);
 
         if (nextToken != null && !nextToken.isEmpty()) {
@@ -128,6 +159,27 @@ public class DynamoDBUtils {
         return executeGsiQuery(index, requestBuilder.build());
     }
 
+    // Query GSI by partition key and sort key (exact match)
+    public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKey(DynamoDbIndex<T> index,
+            String partitionKey, String sortKey, String nextToken, Integer limit) {
+        Log.debugf("DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKey=%s, nextToken=%s, limit=%d",
+                index.indexName(), partitionKey, sortKey, nextToken, limit);
+
+        int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
+        QueryEnhancedRequest.Builder requestBuilder = QueryEnhancedRequest.builder()
+                .queryConditional(QueryConditional.keyEqualTo(Key.builder()
+                        .partitionValue(partitionKey)
+                        .sortValue(sortKey)
+                        .build()))
+                .limit(pageSize);
+
+        if (nextToken != null && !nextToken.isEmpty()) {
+            requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+        }
+
+        return executeGsiQuery(index, requestBuilder.build());
+    }
+
     // Query GSI by partition key and sort key begins with (with pagination)
     public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKeyBeginsWith(DynamoDbIndex<T> index,
             String partitionKey, String sortKeyPrefix, String nextToken, Integer limit) {
@@ -149,7 +201,7 @@ public class DynamoDBUtils {
         return executeGsiQuery(index, requestBuilder.build());
     }
 
-    // Query GSI by partition key and sort key between (with pagination)
+    // Query GSI by partition key and sort key between (with pagination) - String sort keys
     public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKeyBetween(DynamoDbIndex<T> index,
             String partitionKey, String sortKeyStart, String sortKeyEnd, String nextToken, Integer limit) {
         Log.debugf("DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
@@ -160,6 +212,26 @@ public class DynamoDBUtils {
                 .queryConditional(QueryConditional.sortBetween(
                         Key.builder().partitionValue(partitionKey).sortValue(sortKeyStart).build(),
                         Key.builder().partitionValue(partitionKey).sortValue(sortKeyEnd).build()))
+                .limit(pageSize);
+
+        if (nextToken != null && !nextToken.isEmpty()) {
+            requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+        }
+
+        return executeGsiQuery(index, requestBuilder.build());
+    }
+
+    // Query GSI by partition key and sort key between (with pagination) - Instant sort keys
+    public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKeyBetween(DynamoDbIndex<T> index,
+            String partitionKey, Instant sortKeyStart, Instant sortKeyEnd, String nextToken, Integer limit) {
+        Log.debugf("DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
+                index.indexName(), partitionKey, sortKeyStart, sortKeyEnd, nextToken, limit);
+
+        int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
+        QueryEnhancedRequest.Builder requestBuilder = QueryEnhancedRequest.builder()
+                .queryConditional(QueryConditional.sortBetween(
+                        Key.builder().partitionValue(partitionKey).sortValue(sortKeyStart.toString()).build(),
+                        Key.builder().partitionValue(partitionKey).sortValue(sortKeyEnd.toString()).build()))
                 .limit(pageSize);
 
         if (nextToken != null && !nextToken.isEmpty()) {
@@ -278,9 +350,14 @@ public class DynamoDBUtils {
      * @param item The item to put
      * @param conditionExpression The condition expression
      */
+    @SuppressWarnings("unchecked")
     public static <T> void putItemWithCondition(DynamoDbTable<T> table, T item, Expression conditionExpression) {
         Log.debugf("DYNAMODB_PUT_CONDITIONAL: table=%s, item=%s", table.tableName(), item);
-        table.putItem(r -> r.item(item).conditionExpression(conditionExpression));
+        PutItemEnhancedRequest<T> request = PutItemEnhancedRequest.builder((Class<T>) item.getClass())
+                .item(item)
+                .conditionExpression(conditionExpression)
+                .build();
+        table.putItem(request);
     }
 
     /**
