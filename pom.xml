@@ -12,8 +12,8 @@
 
     <modules>
         <module>fulfai-common</module>
-        <module>fulfai-partner-api</module>
-        <!-- Add more API modules here -->
+        <module>fulfai-selling-partner-api</module>
+        <module>fulfai-delivery-partner-api</module>
     </modules>
 
     <properties>

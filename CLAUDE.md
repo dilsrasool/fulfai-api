@@ -12,16 +12,17 @@ mvn clean package
 mvn clean package -Dnative
 
 # Build specific module
-mvn clean package -pl fulfai-partner-api -am
+mvn clean package -pl fulfai-selling-partner-api -am
 
-# Run dev mode
-cd fulfai-partner-api && mvn quarkus:dev
+# Run dev mode (specific module)
+mvn quarkus:dev -pl fulfai-selling-partner-api -am
+mvn quarkus:dev -pl fulfai-delivery-partner-api -am
 
 # Run tests
 mvn test
 
 # Run single test
-mvn test -pl fulfai-partner-api -Dtest=HealthResourceTest
+mvn test -pl fulfai-selling-partner-api -Dtest=HealthResourceTest
 ```
 
 ## Architecture
@@ -30,97 +31,113 @@ Multi-module Quarkus 3.23.0 project for AWS Lambda REST APIs with native build s
 
 ```
 fulfai-api/
-├── pom.xml                        # Parent POM with shared config
-├── postman/partner/               # Postman collection for Partner API
-├── fulfai-common/                 # Shared code module
+├── pom.xml                           # Parent POM with shared config
+├── fulfai-common/                    # Shared code module
 │   └── src/main/java/com/fulfai/common/
-│       ├── dynamodb/
-│       │   ├── ClientFactory.java       # DynamoDB Enhanced Client factory
-│       │   ├── DynamoDBUtils.java       # Query execution with debug logging
-│       │   └── TableCreator.java        # Table creation utilities
-│       ├── filter/
-│       │   ├── GlobalRequestFilter.java  # Request logging (DEBUG level)
-│       │   └── GlobalResponseFilter.java # Response logging + CORS
-│       ├── exception/
-│       │   └── GlobalExceptionHandler.java # Global exception handling
-│       └── security/
-│           ├── LambdaIdentityProvider.java   # Lambda auth interface
-│           ├── CognitoSecurityContext.java   # Request-scoped user context
-│           └── CognitoUtils.java             # Cognito helper utilities
-└── fulfai-partner-api/            # Partner API (Lambda deployable)
-    ├── export_vars_stag.sh        # Staging env variables
-    ├── export_vars_prod.sh        # Production env variables
-    └── src/main/java/com/fulfai/partner/
-        ├── PartnerApplication.java    # JAX-RS app (@ApplicationPath("/api/partner"))
-        ├── HealthResource.java        # Health + /me endpoints
-        ├── DevBootstrap.java          # Dev profile table creation
-        ├── Schemas.java               # DynamoDB table schemas
-        ├── company/                   # Company CRUD module
-        │   ├── Company.java           # Entity
-        │   ├── CompanyRequestDTO.java
-        │   ├── CompanyResponseDTO.java
-        │   ├── CompanyMapper.java     # MapStruct mapper
-        │   ├── CompanyRepository.java
-        │   ├── CompanyService.java
-        │   └── CompanyResource.java   # REST endpoints
-        └── security/
-            └── PartnerSecurityProvider.java  # Cognito auth implementation
+│       ├── dynamodb/                 # DynamoDB utilities
+│       ├── dto/                      # Shared DTOs (PaginatedResponse)
+│       ├── filter/                   # Request/Response filters
+│       ├── exception/                # Global exception handling
+│       └── security/                 # Cognito auth (CognitoSecurityProvider)
+│
+├── fulfai-selling-partner-api/       # Seller/Merchant API (port 8082)
+│   └── src/main/java/com/fulfai/sellingpartner/
+│       ├── company/                  # Company CRUD
+│       ├── branch/                   # Branch CRUD
+│       ├── category/                 # Category CRUD
+│       ├── product/                  # Product CRUD
+│       ├── order/                    # Order management
+│       └── account/                  # Account management
+│
+└── fulfai-delivery-partner-api/      # Delivery/Driver API (port 8083)
+    └── src/main/java/com/fulfai/deliverypartner/
+        ├── company/                  # Delivery company CRUD
+        ├── driver/                   # Driver management
+        ├── assignment/               # Order-driver assignments
+        └── location/                 # GPS tracking + proximity search
 ```
 
-## Adding New API Modules
+## API Modules
 
-1. Copy `fulfai-partner-api` structure
-2. Update artifactId and package names
-3. Add module to parent pom.xml `<modules>` section
-4. Depend on `fulfai-common` for shared code
-5. Create security provider implementing `LambdaIdentityProvider`
-6. Update port in `application-dev.properties` (e.g., 8083, 8084)
+### Selling Partner API (port 8082)
+- **Package**: `com.fulfai.sellingpartner`
+- **Path**: `/api/selling-partner`
+- **Entities**: Company, Branch, Category, Product, Order, Account
+- **Cognito Pool**: Seller pool
+
+### Delivery Partner API (port 8083)
+- **Package**: `com.fulfai.deliverypartner`
+- **Path**: `/api/delivery-partner`
+- **Entities**: Company, Driver, DriverOrderAssignment, DriverLocation
+- **Cognito Pool**: Driver pool
+- **Features**: Geohash-based proximity search for nearby drivers
+
+## DynamoDB Tables
+
+### Selling Partner API
+| Table | GSIs |
+|-------|------|
+| FulfAI-{env}-Company | - |
+| FulfAI-{env}-Branch | - |
+| FulfAI-{env}-Category | - |
+| FulfAI-{env}-Product | status-index |
+| FulfAI-{env}-Order | status-index |
+| FulfAI-{env}-Account | - |
+
+### Delivery Partner API
+| Table | GSIs |
+|-------|------|
+| FulfAI-{env}-DeliveryCompany | - |
+| FulfAI-{env}-Driver | status-index |
+| FulfAI-{env}-DriverAssignment | order-index, assignment-status-index |
+| FulfAI-{env}-DriverLocation | geohash-index |
 
 ## Adding New Entity (CRUD)
 
 1. Create entity class with `@DynamoDbBean` in `<module>/<entity>/`
 2. Create `<Entity>RequestDTO.java` and `<Entity>ResponseDTO.java`
-3. Create `<Entity>Mapper.java` (MapStruct interface)
+3. Create `<Entity>Mapper.java` (MapStruct interface with `@Mapping(target=..., ignore=true)`)
 4. Add schema to `Schemas.java`
 5. Create `<Entity>Repository.java` using `DynamoDBUtils`
 6. Create `<Entity>Service.java`
 7. Create `<Entity>Resource.java`
-8. Add table name to `application-dev.properties` and `export_vars_*.sh`
-9. Add table creation to `DevBootstrap.java`
+8. Add table name to `application-dev.properties` and root `export_vars_*.sh`
+9. Add table creation to `DevBootstrap.java` and `TableCreator.java`
 
 ## Key Dependencies
 
 - **Quarkus 3.23.0** with AWS Lambda REST extension
-- **AWS SDK**: DynamoDB (enhanced), S3, Athena, Lambda
+- **AWS SDK**: DynamoDB (enhanced), S3, API Gateway Management API
 - **MapStruct 1.6.3 + Lombok 1.18.32** for DTOs
-- **iText 7.2.5** for PDF generation
 - **Testcontainers + LocalStack** for integration tests
-
-## Profiles & Ports
-
-- `dev`: LocalStack (localhost:4566), Partner API on port **8082**
-- `prod`: AWS credentials via default chain
-- `native`: GraalVM native image build
 
 ## Security
 
-- All endpoints require Cognito authentication
-- `PartnerSecurityProvider` extracts user sub from Lambda event
+### REST APIs (Selling/Delivery Partner)
+- Use `CognitoSecurityProvider` in fulfai-common
+- Extracts user sub from Lambda event `requestContext.identity.cognitoAuthenticationProvider`
 - Use `CognitoSecurityContext` to access current user info
 
-## Testing with Postman
+## Environment Variables
 
-- Collection: `postman/partner/FulfAI-Partner-API.postman_collection.json`
-- Base URL: `http://localhost:8082/_lambda_`
-- All requests use Lambda proxy format with Cognito identity in `requestContext`
+Centralized environment config files at project root (not per-module):
 
-## DynamoDB Table Naming
+```bash
+# Staging
+source export_vars_stag.sh
 
-Format: `FulfAI-<env>-<TableName>`
-- Example: `FulfAI-dev-Company`, `FulfAI-staging-Company`, `FulfAI-prod-Company`
+# Production
+source export_vars_prod.sh
+```
+
+These files export all variables for all APIs:
+- DynamoDB table names (Selling Partner, Delivery Partner)
+- S3 bucket names
+- Cognito User Pool IDs
+- Log level (DEBUG for staging, ERROR for prod)
 
 ## Logging
 
 - Request/Response logging at DEBUG level via `GlobalRequestFilter`/`GlobalResponseFilter`
-- DynamoDB operations logged via `DynamoDBUtils` (DYNAMODB_GET, DYNAMODB_SCAN, etc.)
-- Security auth logged via `PartnerSecurityProvider` (SECURITY_AUTH)
+- DynamoDB operations logged via `DynamoDBUtils` (DYNAMODB_GET, DYNAMODB_QUERY, etc.)
+- Set `quarkus.log.category."com.fulfai".level=DEBUG` for detailed logs
