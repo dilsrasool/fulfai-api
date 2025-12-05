@@ -1,0 +1,826 @@
+{
+	"info": {
+		"_postman_id": "fulfai-partner-api-collection",
+		"name": "FulfAI Partner API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8082/_lambda_"
+		},
+		{
+			"key": "companyId",
+			"value": ""
+		},
+		{
+			"key": "branchId",
+			"value": ""
+		},
+		{
+			"key": "categoryName",
+			"value": ""
+		},
+		{
+			"key": "productId",
+			"value": ""
+		},
+		{
+			"key": "orderId",
+			"value": ""
+		},
+		{
+			"key": "cognitoSub",
+			"value": "a23524e4-4081-7003-4c69-962dfc60864a"
+		}
+	],
+	"item": [
+		{
+			"name": "Health",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/health\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Me (Auth Info)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/health/me\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Company",
+			"item": [
+				{
+					"name": "Create Company",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var responseBody = pm.response.json();",
+									"    if (responseBody.body) {",
+									"        var body = JSON.parse(responseBody.body);",
+									"        pm.collectionVariables.set('companyId', body.id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Test Company\\\",\\\"address\\\":\\\"123 Main Street\\\",\\\"city\\\":\\\"Dubai\\\",\\\"country\\\":\\\"UAE\\\",\\\"email\\\":\\\"contact@testcompany.com\\\",\\\"licenseNo\\\":\\\"LIC-12345\\\",\\\"logo\\\":\\\"https://example.com/logo.png\\\",\\\"phoneNumber\\\":\\\"+971501234567\\\",\\\"trn\\\":\\\"TRN-987654321\\\",\\\"website\\\":\\\"https://testcompany.com\\\",\\\"operatingCountries\\\":[\\\"UAE\\\",\\\"Saudi Arabia\\\",\\\"Qatar\\\"]}\",\n    \"path\": \"/api/partner/company\",\n    \"httpMethod\": \"POST\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get All Companies",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Company by ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Updated Company Name\\\",\\\"address\\\":\\\"456 Updated Street\\\",\\\"city\\\":\\\"Abu Dhabi\\\",\\\"country\\\":\\\"UAE\\\",\\\"email\\\":\\\"updated@testcompany.com\\\",\\\"licenseNo\\\":\\\"LIC-12345\\\",\\\"logo\\\":\\\"https://example.com/new-logo.png\\\",\\\"phoneNumber\\\":\\\"+971509876543\\\",\\\"trn\\\":\\\"TRN-987654321\\\",\\\"website\\\":\\\"https://updated-testcompany.com\\\",\\\"operatingCountries\\\":[\\\"UAE\\\",\\\"Saudi Arabia\\\",\\\"Oman\\\",\\\"Bahrain\\\"]}\",\n    \"path\": \"/api/partner/company/{{companyId}}\",\n    \"httpMethod\": \"PUT\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Company",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}\",\n    \"httpMethod\": \"DELETE\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Branch",
+			"item": [
+				{
+					"name": "Create Branch",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var responseBody = pm.response.json();",
+									"    if (responseBody.body) {",
+									"        var body = JSON.parse(responseBody.body);",
+									"        pm.collectionVariables.set('branchId', body.branchId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Main Branch\\\",\\\"address\\\":\\\"123 Branch Street\\\",\\\"city\\\":\\\"Dubai\\\",\\\"country\\\":\\\"UAE\\\",\\\"phoneNumber\\\":\\\"+971501234567\\\",\\\"email\\\":\\\"branch@testcompany.com\\\",\\\"managerName\\\":\\\"John Doe\\\",\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/branch\",\n    \"httpMethod\": \"POST\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Branches",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/branch\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Branch by ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/branch/{{branchId}}\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Branch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Updated Branch\\\",\\\"address\\\":\\\"456 Updated Street\\\",\\\"city\\\":\\\"Abu Dhabi\\\",\\\"country\\\":\\\"UAE\\\",\\\"phoneNumber\\\":\\\"+971509876543\\\",\\\"email\\\":\\\"updated-branch@testcompany.com\\\",\\\"managerName\\\":\\\"Jane Smith\\\",\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/branch/{{branchId}}\",\n    \"httpMethod\": \"PUT\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Branch",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/branch/{{branchId}}\",\n    \"httpMethod\": \"DELETE\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Category",
+			"item": [
+				{
+					"name": "Create Category",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var responseBody = pm.response.json();",
+									"    if (responseBody.body) {",
+									"        var body = JSON.parse(responseBody.body);",
+									"        pm.collectionVariables.set('categoryName', body.name);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Electronics\\\",\\\"description\\\":\\\"Electronic devices and accessories\\\",\\\"imageUrl\\\":\\\"https://example.com/electronics.jpg\\\",\\\"displayOrder\\\":1,\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/category\",\n    \"httpMethod\": \"POST\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Categories",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/category\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Category by Name",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/category/{{categoryName}}\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Electronics\\\",\\\"description\\\":\\\"Updated description for electronics\\\",\\\"imageUrl\\\":\\\"https://example.com/electronics-new.jpg\\\",\\\"displayOrder\\\":1,\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/category/{{categoryName}}\",\n    \"httpMethod\": \"PUT\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/category/{{categoryName}}\",\n    \"httpMethod\": \"DELETE\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Product",
+			"item": [
+				{
+					"name": "Create Product",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var responseBody = pm.response.json();",
+									"    if (responseBody.body) {",
+									"        var body = JSON.parse(responseBody.body);",
+									"        pm.collectionVariables.set('productId', body.productId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Test Product\\\",\\\"description\\\":\\\"A sample product for testing\\\",\\\"category\\\":\\\"Electronics\\\",\\\"sku\\\":\\\"SKU-001\\\",\\\"barcode\\\":\\\"1234567890123\\\",\\\"price\\\":99.99,\\\"costPrice\\\":50.00,\\\"unit\\\":\\\"piece\\\",\\\"stockQuantity\\\":100,\\\"reorderLevel\\\":10,\\\"imageUrl\\\":\\\"https://example.com/product.jpg\\\",\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/product\",\n    \"httpMethod\": \"POST\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/product\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Products by Category",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/product\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"category\": \"Electronics\",\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Product by ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/product/{{productId}}\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"name\\\":\\\"Updated Product\\\",\\\"description\\\":\\\"Updated product description\\\",\\\"category\\\":\\\"Electronics\\\",\\\"sku\\\":\\\"SKU-001\\\",\\\"barcode\\\":\\\"1234567890123\\\",\\\"price\\\":129.99,\\\"costPrice\\\":60.00,\\\"unit\\\":\\\"piece\\\",\\\"stockQuantity\\\":150,\\\"reorderLevel\\\":15,\\\"imageUrl\\\":\\\"https://example.com/updated-product.jpg\\\",\\\"isActive\\\":true}\",\n    \"path\": \"/api/partner/company/{{companyId}}/product/{{productId}}\",\n    \"httpMethod\": \"PUT\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Product",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/product/{{productId}}\",\n    \"httpMethod\": \"DELETE\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Order",
+			"item": [
+				{
+					"name": "Create Order",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var responseBody = pm.response.json();",
+									"    if (responseBody.body) {",
+									"        var body = JSON.parse(responseBody.body);",
+									"        pm.collectionVariables.set('orderId', body.orderId);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"customerName\\\":\\\"John Customer\\\",\\\"customerPhone\\\":\\\"+971501234567\\\",\\\"customerEmail\\\":\\\"customer@example.com\\\",\\\"shippingAddress\\\":\\\"123 Customer Street, Dubai, UAE\\\",\\\"branchId\\\":\\\"{{branchId}}\\\",\\\"items\\\":[{\\\"productId\\\":\\\"{{productId}}\\\",\\\"productName\\\":\\\"Test Product\\\",\\\"sku\\\":\\\"SKU-001\\\",\\\"quantity\\\":2,\\\"unitPrice\\\":99.99}],\\\"paymentMethod\\\":\\\"CARD\\\",\\\"notes\\\":\\\"Please deliver before noon\\\"}\",\n    \"path\": \"/api/partner/company/{{companyId}}/order\",\n    \"httpMethod\": \"POST\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders by Date",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"date\": \"251205\",\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders by Date and Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"date\": \"251205\",\n        \"status\": \"PENDING\",\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Orders by Date Range",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order\",\n    \"httpMethod\": \"GET\",\n    \"queryStringParameters\": {\n        \"startDate\": \"251201\",\n        \"endDate\": \"251231\",\n        \"limit\": \"20\"\n    },\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Get Order by ID",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order/{{orderId}}\",\n    \"httpMethod\": \"GET\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order Status",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"status\\\":\\\"CONFIRMED\\\"}\",\n    \"path\": \"/api/partner/company/{{companyId}}/order/{{orderId}}/status\",\n    \"httpMethod\": \"PATCH\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Update Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"{\\\"customerName\\\":\\\"John Customer Updated\\\",\\\"customerPhone\\\":\\\"+971509876543\\\",\\\"customerEmail\\\":\\\"updated-customer@example.com\\\",\\\"shippingAddress\\\":\\\"456 Updated Street, Abu Dhabi, UAE\\\",\\\"branchId\\\":\\\"{{branchId}}\\\",\\\"items\\\":[{\\\"productId\\\":\\\"{{productId}}\\\",\\\"productName\\\":\\\"Test Product\\\",\\\"sku\\\":\\\"SKU-001\\\",\\\"quantity\\\":3,\\\"unitPrice\\\":99.99}],\\\"paymentMethod\\\":\\\"CASH\\\",\\\"notes\\\":\\\"Updated delivery instructions\\\"}\",\n    \"path\": \"/api/partner/company/{{companyId}}/order/{{orderId}}\",\n    \"httpMethod\": \"PUT\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Order",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"body\": \"\",\n    \"path\": \"/api/partner/company/{{companyId}}/order/{{orderId}}\",\n    \"httpMethod\": \"DELETE\",\n    \"isBase64Encoded\": false,\n    \"multiValueHeaders\": {\n        \"content-type\": [\"application/json; charset=UTF-8\"]\n    },\n    \"requestContext\": {\n        \"accountId\": \"123456789012\",\n        \"stage\": \"dev\",\n        \"requestId\": \"test-request-id\",\n        \"identity\": {\n            \"cognitoAuthenticationType\": \"authenticated\",\n            \"cognitoAuthenticationProvider\": \"cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o,cognito-idp.eu-west-1.amazonaws.com/eu-west-1_kRr0ofR0o:CognitoSignIn:{{cognitoSub}}\"\n        },\n        \"authorizer\": {}\n    }\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}",
+							"host": ["{{baseUrl}}"]
+						}
+					},
+					"response": []
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,40 @@
+package com.fulfai.partner.branch;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+@Data
+@RegisterForReflection
+public class BranchRequestDTO {
+
+    @NotBlank(message = "Name cannot be blank")
+    @Size(max = 100, message = "Name must be less than 100 characters")
+    private String name;
+
+    @NotBlank(message = "Address cannot be blank")
+    @Size(max = 200, message = "Address must be less than 200 characters")
+    private String address;
+
+    @NotBlank(message = "City cannot be blank")
+    @Size(max = 50, message = "City must be less than 50 characters")
+    private String city;
+
+    @NotBlank(message = "Country cannot be blank")
+    @Size(max = 50, message = "Country must be less than 50 characters")
+    private String country;
+
+    @Size(max = 20, message = "Phone number must be less than 20 characters")
+    private String phoneNumber;
+
+    @Email(message = "Email should be valid")
+    @Size(max = 100, message = "Email must be less than 100 characters")
+    private String email;
+
+    @Size(max = 100, message = "Manager name must be less than 100 characters")
+    private String managerName;
+
+    private Boolean isActive;
+}
