@@ -1,7 +1,5 @@
 package com.fulfai.deliverypartner.location;
 
-import java.util.List;
-
 import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.common.dto.PaginationDTO;
 
@@ -40,7 +38,8 @@ public class LocationResource {
             PaginationDTO request) {
         Integer limit = request != null && request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
         String nextToken = request != null ? request.getNextToken() : null;
-        PaginatedResponse<LocationResponseDTO> history = locationService.getDriverLocationHistory(driverId, nextToken, limit);
+        PaginatedResponse<LocationResponseDTO> history = locationService.getDriverLocationHistory(driverId, nextToken,
+                limit);
         return Response.ok(history).build();
     }
 }

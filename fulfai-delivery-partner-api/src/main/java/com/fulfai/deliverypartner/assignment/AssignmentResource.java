@@ -6,7 +6,6 @@ import com.fulfai.common.dto.PaginationDTO;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
@@ -41,7 +40,8 @@ public class AssignmentResource {
             PaginationDTO request) {
         Integer limit = request != null && request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
         String nextToken = request != null ? request.getNextToken() : null;
-        PaginatedResponse<AssignmentResponseDTO> assignments = assignmentService.getDriverAssignments(driverId, nextToken, limit);
+        PaginatedResponse<AssignmentResponseDTO> assignments = assignmentService.getDriverAssignments(driverId,
+                nextToken, limit);
         return Response.ok(assignments).build();
     }
 

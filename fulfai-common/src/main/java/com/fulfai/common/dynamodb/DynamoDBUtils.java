@@ -201,10 +201,12 @@ public class DynamoDBUtils {
         return executeGsiQuery(index, requestBuilder.build());
     }
 
-    // Query GSI by partition key and sort key between (with pagination) - String sort keys
+    // Query GSI by partition key and sort key between (with pagination) - String
+    // sort keys
     public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKeyBetween(DynamoDbIndex<T> index,
             String partitionKey, String sortKeyStart, String sortKeyEnd, String nextToken, Integer limit) {
-        Log.debugf("DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
+        Log.debugf(
+                "DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
                 index.indexName(), partitionKey, sortKeyStart, sortKeyEnd, nextToken, limit);
 
         int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
@@ -221,10 +223,12 @@ public class DynamoDBUtils {
         return executeGsiQuery(index, requestBuilder.build());
     }
 
-    // Query GSI by partition key and sort key between (with pagination) - Instant sort keys
+    // Query GSI by partition key and sort key between (with pagination) - Instant
+    // sort keys
     public static <T> PaginatedResponse<T> queryGsiByPartitionKeyAndSortKeyBetween(DynamoDbIndex<T> index,
             String partitionKey, Instant sortKeyStart, Instant sortKeyEnd, String nextToken, Integer limit) {
-        Log.debugf("DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
+        Log.debugf(
+                "DYNAMODB_QUERY_GSI: index=%s, partitionKey=%s, sortKeyStart=%s, sortKeyEnd=%s, nextToken=%s, limit=%d",
                 index.indexName(), partitionKey, sortKeyStart, sortKeyEnd, nextToken, limit);
 
         int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
@@ -327,6 +331,7 @@ public class DynamoDBUtils {
 
     /**
      * Execute transactWriteItems with the provided builder consumer.
+     * 
      * @param enhancedClient The DynamoDB enhanced client
      * @param requestBuilder Consumer to build the transaction request
      */
@@ -346,8 +351,9 @@ public class DynamoDBUtils {
 
     /**
      * Put item with condition expression (for conditional writes in transactions).
-     * @param table The DynamoDB table
-     * @param item The item to put
+     * 
+     * @param table               The DynamoDB table
+     * @param item                The item to put
      * @param conditionExpression The condition expression
      */
     @SuppressWarnings("unchecked")
@@ -362,13 +368,14 @@ public class DynamoDBUtils {
 
     /**
      * Update item with condition expression.
-     * @param table The DynamoDB table
-     * @param item The item to update
-     * @param itemClass The class of the item
+     * 
+     * @param table               The DynamoDB table
+     * @param item                The item to update
+     * @param itemClass           The class of the item
      * @param conditionExpression The condition expression
      */
-    @SuppressWarnings("unchecked")
-    public static <T> void updateItemWithCondition(DynamoDbTable<T> table, T item, Class<T> itemClass, Expression conditionExpression) {
+    public static <T> void updateItemWithCondition(DynamoDbTable<T> table, T item, Class<T> itemClass,
+            Expression conditionExpression) {
         Log.debugf("DYNAMODB_UPDATE_CONDITIONAL: table=%s, item=%s", table.tableName(), item);
         table.updateItem(UpdateItemEnhancedRequest.builder(itemClass)
                 .item(item)
@@ -377,7 +384,9 @@ public class DynamoDBUtils {
     }
 
     /**
-     * Create a condition expression to check if an attribute equals a specific value.
+     * Create a condition expression to check if an attribute equals a specific
+     * value.
+     * 
      * @param attributeName The attribute name
      * @param expectedValue The expected value
      * @return Expression for condition check
@@ -391,7 +400,9 @@ public class DynamoDBUtils {
     }
 
     /**
-     * Create a condition expression to check if an attribute is in a list of values.
+     * Create a condition expression to check if an attribute is in a list of
+     * values.
+     * 
      * @param attributeName The attribute name
      * @param allowedValues The allowed values
      * @return Expression for condition check
@@ -420,18 +431,21 @@ public class DynamoDBUtils {
 
     /**
      * Create a condition expression to check stock quantity is sufficient.
+     * 
      * @param requiredQuantity The minimum quantity required
      * @return Expression for condition check
      */
     public static Expression stockQuantitySufficient(int requiredQuantity) {
         return Expression.builder()
                 .expression("stockQuantity >= :requiredQty")
-                .putExpressionValue(":requiredQty", AttributeValue.builder().n(String.valueOf(requiredQuantity)).build())
+                .putExpressionValue(":requiredQty",
+                        AttributeValue.builder().n(String.valueOf(requiredQuantity)).build())
                 .build();
     }
 
     /**
      * Create a condition expression to check if an attribute exists (item exists).
+     * 
      * @param attributeName The attribute name to check for existence
      * @return Expression for condition check
      */
@@ -455,7 +469,8 @@ public class DynamoDBUtils {
     }
 
     /**
-     * Extract human-readable cancellation reasons from TransactionCanceledException.
+     * Extract human-readable cancellation reasons from
+     * TransactionCanceledException.
      */
     private static String extractCancellationReasons(TransactionCanceledException e) {
         if (e.cancellationReasons() == null || e.cancellationReasons().isEmpty()) {

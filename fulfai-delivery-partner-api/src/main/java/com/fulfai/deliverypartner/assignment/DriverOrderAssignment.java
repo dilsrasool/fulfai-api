@@ -8,7 +8,6 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttri
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 /**
@@ -28,8 +27,8 @@ public class DriverOrderAssignment {
     private String driverId;
     private Instant assignedAt;
     private String orderId;
-    private String sellingPartnerId;    // Company that created the order
-    private String status;              // ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED
+    private String sellingPartnerId; // Company that created the order
+    private String status; // ASSIGNED, PICKED_UP, IN_TRANSIT, DELIVERED, CANCELLED
     private String pickupAddress;
     private Double pickupLatitude;
     private Double pickupLongitude;
