@@ -1,19 +1,18 @@
 package com.fulfai.partner.category;
 
 import com.fulfai.common.dto.PaginatedResponse;
+import com.fulfai.common.dto.PaginationDTO;
 
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -21,6 +20,8 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class CategoryResource {
+
+    private static final int DEFAULT_LIMIT = 20;
 
     @Inject
     CategoryService categoryService;
@@ -31,10 +32,11 @@ public class CategoryResource {
         return Response.status(Response.Status.CREATED).entity(createdCategory).build();
     }
 
-    @GET
-    public Response getCategories(@PathParam("companyId") String companyId,
-            @QueryParam("nextToken") String nextToken,
-            @QueryParam("limit") @DefaultValue("20") Integer limit) {
+    @POST
+    @Path("/search")
+    public Response searchCategories(@PathParam("companyId") String companyId, PaginationDTO request) {
+        Integer limit = request != null && request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
+        String nextToken = request != null ? request.getNextToken() : null;
         PaginatedResponse<CategoryResponseDTO> categories = categoryService.getCategoriesByCompanyId(companyId, nextToken, limit);
         return Response.ok(categories).build();
     }

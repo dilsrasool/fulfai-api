@@ -6,14 +6,12 @@ import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.DefaultValue;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
@@ -21,6 +19,8 @@ import jakarta.ws.rs.core.Response;
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 public class ProductResource {
+
+    private static final int DEFAULT_LIMIT = 20;
 
     @Inject
     ProductService productService;
@@ -31,12 +31,14 @@ public class ProductResource {
         return Response.status(Response.Status.CREATED).entity(createdProduct).build();
     }
 
-    @GET
-    public Response getProducts(@PathParam("companyId") String companyId,
-            @QueryParam("category") String category,
-            @QueryParam("nextToken") String nextToken,
-            @QueryParam("limit") @DefaultValue("20") Integer limit) {
+    @POST
+    @Path("/search")
+    public Response searchProducts(@PathParam("companyId") String companyId, ProductSearchDTO request) {
         PaginatedResponse<ProductResponseDTO> products;
+        Integer limit = request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
+        String nextToken = request.getNextToken();
+        String category = request.getCategory();
+
         if (category != null && !category.isEmpty()) {
             products = productService.getProductsByCategory(companyId, category, nextToken, limit);
         } else {

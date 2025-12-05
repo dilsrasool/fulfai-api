@@ -5,7 +5,6 @@ import java.util.List;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -13,19 +12,6 @@ import lombok.Data;
 @Data
 @RegisterForReflection
 public class OrderRequestDTO {
-
-    @NotBlank(message = "Customer name cannot be blank")
-    @Size(max = 100, message = "Customer name must be less than 100 characters")
-    private String customerName;
-
-    @Size(max = 20, message = "Customer phone must be less than 20 characters")
-    private String customerPhone;
-
-    @Size(max = 100, message = "Customer email must be less than 100 characters")
-    private String customerEmail;
-
-    @Size(max = 500, message = "Shipping address must be less than 500 characters")
-    private String shippingAddress;
 
     private String branchId;
 

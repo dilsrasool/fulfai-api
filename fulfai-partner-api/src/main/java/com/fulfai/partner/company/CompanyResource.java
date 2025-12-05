@@ -1,7 +1,5 @@
 package com.fulfai.partner.company;
 
-import java.util.List;
-
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.Consumes;
@@ -27,12 +25,6 @@ public class CompanyResource {
     public Response createCompany(@Valid CompanyRequestDTO request) {
         CompanyResponseDTO createdCompany = companyService.createCompany(request);
         return Response.status(Response.Status.CREATED).entity(createdCompany).build();
-    }
-
-    @GET
-    public Response getAllCompanies() {
-        List<CompanyResponseDTO> companies = companyService.getAllCompanies();
-        return Response.ok(companies).build();
     }
 
     @GET

@@ -22,24 +22,20 @@ public class Order {
 
     private String companyId;
     private String orderId;
-    private String orderDate; // yyMMdd format
-    private String status; // PENDING, ACCEPTED, PREPARED, SHIPPED, DELIVERED, CANCELLED
-    private String dateStatusKey; // yyMMdd#STATUS for GSI sort key
-    private String customerName;
-    private String customerPhone;
-    private String customerEmail;
-    private String shippingAddress;
+    private Instant orderDate; // UTC timestamp
+    private String status; // RECEIVED, ACCEPTED, PREPARED, RIDER_ACCEPTED, SHIPPED, DELIVERED, CANCELLED
+    private String dateStatusKey; // ISO timestamp#STATUS for GSI sort key (UTC)
     private String branchId;
     private List<OrderItem> items;
     private BigDecimal subtotal;
     private BigDecimal taxAmount;
     private BigDecimal discountAmount;
     private BigDecimal totalAmount;
-    private String paymentMethod;
+    private String paymentMethod; // CASH, CARD, OTHER
     private String paymentStatus; // PENDING, PAID, REFUNDED
     private String notes;
-    private Instant createdAt;
-    private Instant updatedAt;
+    private Instant createdAt;  // UTC
+    private Instant updatedAt;  // UTC
 
     @DynamoDbPartitionKey
     @DynamoDbSecondaryPartitionKey(indexNames = DATE_STATUS_GSI)
@@ -55,7 +51,7 @@ public class Order {
     }
 
     @DynamoDbAttribute("orderDate")
-    public String getOrderDate() {
+    public Instant getOrderDate() {
         return orderDate;
     }
 
@@ -68,26 +64,6 @@ public class Order {
     @DynamoDbAttribute("dateStatusKey")
     public String getDateStatusKey() {
         return dateStatusKey;
-    }
-
-    @DynamoDbAttribute("customerName")
-    public String getCustomerName() {
-        return customerName;
-    }
-
-    @DynamoDbAttribute("customerPhone")
-    public String getCustomerPhone() {
-        return customerPhone;
-    }
-
-    @DynamoDbAttribute("customerEmail")
-    public String getCustomerEmail() {
-        return customerEmail;
-    }
-
-    @DynamoDbAttribute("shippingAddress")
-    public String getShippingAddress() {
-        return shippingAddress;
     }
 
     @DynamoDbAttribute("branchId")

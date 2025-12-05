@@ -1,9 +1,7 @@
 package com.fulfai.partner.company;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -42,13 +40,6 @@ public class CompanyService {
         } else {
             throw new NotFoundException("Company not found with id: " + id);
         }
-    }
-
-    public List<CompanyResponseDTO> getAllCompanies() {
-        Log.debug("Getting all companies");
-        return companyRepository.getAll().stream()
-                .map(companyMapper::toResponseDTO)
-                .collect(Collectors.toList());
     }
 
     public CompanyResponseDTO updateCompanyById(String id, @Valid CompanyRequestDTO companyDTO) {

@@ -4,17 +4,23 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import com.fulfai.common.dto.PaginatedResponse;
 
 import io.quarkus.logging.Log;
+import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.TransactWriteItemsEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
+import software.amazon.awssdk.services.dynamodb.model.TransactionCanceledException;
 
 public class DynamoDBUtils {
 
@@ -242,6 +248,155 @@ public class DynamoDBUtils {
         } catch (Exception e) {
             Log.warnf("Failed to decode pagination token: %s", e.getMessage());
             return null;
+        }
+    }
+
+    // ==================== Transaction Support ====================
+
+    /**
+     * Execute transactWriteItems with the provided builder consumer.
+     * @param enhancedClient The DynamoDB enhanced client
+     * @param requestBuilder Consumer to build the transaction request
+     */
+    public static void transactWriteItems(DynamoDbEnhancedClient enhancedClient,
+            Consumer<TransactWriteItemsEnhancedRequest.Builder> requestBuilder) {
+        Log.debug("DYNAMODB_TRANSACT_WRITE: Starting transaction");
+        try {
+            TransactWriteItemsEnhancedRequest.Builder builder = TransactWriteItemsEnhancedRequest.builder();
+            requestBuilder.accept(builder);
+            enhancedClient.transactWriteItems(builder.build());
+            Log.debug("DYNAMODB_TRANSACT_WRITE: Transaction completed successfully");
+        } catch (TransactionCanceledException e) {
+            Log.errorf("DYNAMODB_TRANSACT_WRITE: Transaction cancelled - reasons: %s", e.cancellationReasons());
+            throw new TransactionFailedException("Transaction cancelled: " + extractCancellationReasons(e), e);
+        }
+    }
+
+    /**
+     * Put item with condition expression (for conditional writes in transactions).
+     * @param table The DynamoDB table
+     * @param item The item to put
+     * @param conditionExpression The condition expression
+     */
+    public static <T> void putItemWithCondition(DynamoDbTable<T> table, T item, Expression conditionExpression) {
+        Log.debugf("DYNAMODB_PUT_CONDITIONAL: table=%s, item=%s", table.tableName(), item);
+        table.putItem(r -> r.item(item).conditionExpression(conditionExpression));
+    }
+
+    /**
+     * Update item with condition expression.
+     * @param table The DynamoDB table
+     * @param item The item to update
+     * @param itemClass The class of the item
+     * @param conditionExpression The condition expression
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> void updateItemWithCondition(DynamoDbTable<T> table, T item, Class<T> itemClass, Expression conditionExpression) {
+        Log.debugf("DYNAMODB_UPDATE_CONDITIONAL: table=%s, item=%s", table.tableName(), item);
+        table.updateItem(UpdateItemEnhancedRequest.builder(itemClass)
+                .item(item)
+                .conditionExpression(conditionExpression)
+                .build());
+    }
+
+    /**
+     * Create a condition expression to check if an attribute equals a specific value.
+     * @param attributeName The attribute name
+     * @param expectedValue The expected value
+     * @return Expression for condition check
+     */
+    public static Expression attributeEquals(String attributeName, String expectedValue) {
+        return Expression.builder()
+                .expression("#attr = :val")
+                .putExpressionName("#attr", attributeName)
+                .putExpressionValue(":val", AttributeValue.builder().s(expectedValue).build())
+                .build();
+    }
+
+    /**
+     * Create a condition expression to check if an attribute is in a list of values.
+     * @param attributeName The attribute name
+     * @param allowedValues The allowed values
+     * @return Expression for condition check
+     */
+    public static Expression attributeIn(String attributeName, List<String> allowedValues) {
+        Expression.Builder builder = Expression.builder();
+        StringBuilder expression = new StringBuilder("#attr IN (");
+        Map<String, AttributeValue> values = new java.util.HashMap<>();
+
+        for (int i = 0; i < allowedValues.size(); i++) {
+            if (i > 0) {
+                expression.append(", ");
+            }
+            String placeholder = ":val" + i;
+            expression.append(placeholder);
+            values.put(placeholder, AttributeValue.builder().s(allowedValues.get(i)).build());
+        }
+        expression.append(")");
+
+        builder.expression(expression.toString())
+                .putExpressionName("#attr", attributeName)
+                .expressionValues(values);
+
+        return builder.build();
+    }
+
+    /**
+     * Create a condition expression to check stock quantity is sufficient.
+     * @param requiredQuantity The minimum quantity required
+     * @return Expression for condition check
+     */
+    public static Expression stockQuantitySufficient(int requiredQuantity) {
+        return Expression.builder()
+                .expression("stockQuantity >= :requiredQty")
+                .putExpressionValue(":requiredQty", AttributeValue.builder().n(String.valueOf(requiredQuantity)).build())
+                .build();
+    }
+
+    /**
+     * Create a condition expression to check if an attribute exists (item exists).
+     * @param attributeName The attribute name to check for existence
+     * @return Expression for condition check
+     */
+    public static Expression attributeExists(String attributeName) {
+        return Expression.builder()
+                .expression("attribute_exists(#attr)")
+                .putExpressionName("#attr", attributeName)
+                .build();
+    }
+
+    /**
+     * Create a combined condition: attribute exists AND equals expected value.
+     * Useful for checking item exists with specific status.
+     */
+    public static Expression attributeExistsAndEquals(String attributeName, String expectedValue) {
+        return Expression.builder()
+                .expression("attribute_exists(#attr) AND #attr = :val")
+                .putExpressionName("#attr", attributeName)
+                .putExpressionValue(":val", AttributeValue.builder().s(expectedValue).build())
+                .build();
+    }
+
+    /**
+     * Extract human-readable cancellation reasons from TransactionCanceledException.
+     */
+    private static String extractCancellationReasons(TransactionCanceledException e) {
+        if (e.cancellationReasons() == null || e.cancellationReasons().isEmpty()) {
+            return "Unknown reason";
+        }
+        return e.cancellationReasons().stream()
+                .filter(r -> r.code() != null && !"None".equals(r.code()))
+                .map(r -> r.code() + ": " + (r.message() != null ? r.message() : "No message"))
+                .reduce((a, b) -> a + "; " + b)
+                .orElse("No specific reason");
+    }
+
+    /**
+     * Custom exception for transaction failures.
+     */
+    public static class TransactionFailedException extends RuntimeException {
+        public TransactionFailedException(String message, Throwable cause) {
+            super(message, cause);
         }
     }
 }

@@ -13,12 +13,8 @@ public class OrderResponseDTO {
 
     private String companyId;
     private String orderId;
-    private String orderDate;
+    private Instant orderDate;
     private String status;
-    private String customerName;
-    private String customerPhone;
-    private String customerEmail;
-    private String shippingAddress;
     private String branchId;
     private List<OrderItemDTO> items;
     private BigDecimal subtotal;

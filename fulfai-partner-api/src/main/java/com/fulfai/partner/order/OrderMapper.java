@@ -19,7 +19,6 @@ public interface OrderMapper {
     @Mapping(target = "updatedAt", ignore = true)
     Order toEntity(OrderRequestDTO dto);
 
-    @Mapping(target = "dateStatusKey", ignore = true)
     OrderResponseDTO toResponseDTO(Order entity);
 
     OrderItem toOrderItem(OrderItemDTO dto);

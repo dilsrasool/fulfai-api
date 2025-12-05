@@ -23,7 +23,7 @@ public class ProductRepository {
     @Inject
     ClientFactory clientFactory;
 
-    private DynamoDbTable<Product> getProductTable() {
+    public DynamoDbTable<Product> getProductTable() {
         return clientFactory.getEnhancedDynamoClient().table(tableName, Schemas.PRODUCT_SCHEMA);
     }
 

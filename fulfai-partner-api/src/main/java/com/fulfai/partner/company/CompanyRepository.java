@@ -1,7 +1,5 @@
 package com.fulfai.partner.company;
 
-import java.util.List;
-
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fulfai.common.dynamodb.ClientFactory;
@@ -29,10 +27,6 @@ public class CompanyRepository {
 
     public Company getById(String id) {
         return DynamoDBUtils.getItem(getCompanyTable(), id);
-    }
-
-    public List<Company> getAll() {
-        return DynamoDBUtils.scan(getCompanyTable());
     }
 
     public void save(Company company) {
