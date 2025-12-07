@@ -10,7 +10,7 @@
 # Environment
 export ENV="staging"
 export QUARKUS_PROFILE="prod"
-export AWS_REGION="us-east-1"
+export AWS_REGION="me-central-1"
 
 # -----------------------------------------------------------------------------
 # Selling Partner API - DynamoDB Tables
@@ -31,6 +31,11 @@ export DELIVERY_ASSIGNMENT_TABLE_NAME="FulfAI-${ENV}-DriverAssignment"
 export DELIVERY_LOCATION_TABLE_NAME="FulfAI-${ENV}-DriverLocation"
 
 # -----------------------------------------------------------------------------
+# Notification WebSocket API - DynamoDB Tables
+# -----------------------------------------------------------------------------
+export WEBSOCKET_CONNECTION_TABLE_NAME="FulfAI-${ENV}-WebSocketConnection"
+
+# -----------------------------------------------------------------------------
 # S3 Buckets
 # -----------------------------------------------------------------------------
 export ASSETS_BUCKET_NAME="fulfai-${ENV}-assets"
@@ -40,8 +45,8 @@ export COMPANY_ASSETS_BUCKET_NAME="fulfai-${ENV}-company-assets"
 # -----------------------------------------------------------------------------
 # Cognito User Pools
 # -----------------------------------------------------------------------------
-export SELLER_USER_POOL_ID="us-east-1_xxxxx"
-export DRIVER_USER_POOL_ID="us-east-1_yyyyy"
+export SELLER_USER_POOL_ID="me-central-1_xxxxx"
+export DRIVER_USER_POOL_ID="me-central-1_yyyyy"
 
 # -----------------------------------------------------------------------------
 # Logging
@@ -71,6 +76,9 @@ echo "  DELIVERY_COMPANY_TABLE_NAME: $DELIVERY_COMPANY_TABLE_NAME"
 echo "  DELIVERY_DRIVER_TABLE_NAME: $DELIVERY_DRIVER_TABLE_NAME"
 echo "  DELIVERY_ASSIGNMENT_TABLE_NAME: $DELIVERY_ASSIGNMENT_TABLE_NAME"
 echo "  DELIVERY_LOCATION_TABLE_NAME: $DELIVERY_LOCATION_TABLE_NAME"
+echo ""
+echo "Notification WebSocket API Tables:"
+echo "  WEBSOCKET_CONNECTION_TABLE_NAME: $WEBSOCKET_CONNECTION_TABLE_NAME"
 echo ""
 echo "S3 Buckets:"
 echo "  ASSETS_BUCKET_NAME: $ASSETS_BUCKET_NAME"

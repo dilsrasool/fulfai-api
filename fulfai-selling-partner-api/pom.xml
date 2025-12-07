@@ -16,10 +16,10 @@
     <description>Selling Partner API for FulfAI</description>
 
     <dependencies>
-        <!-- Common module -->
+        <!-- Common REST module -->
         <dependency>
             <groupId>com.fulfai</groupId>
-            <artifactId>fulfai-common</artifactId>
+            <artifactId>fulfai-common-rest</artifactId>
         </dependency>
 
         <!-- Quarkus Lambda REST -->

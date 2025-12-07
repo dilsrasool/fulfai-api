@@ -13,6 +13,7 @@ mvn clean package -Dnative
 
 # Build specific module
 mvn clean package -pl fulfai-selling-partner-api -am
+mvn clean package -pl fulfai-notification-websocket-api -am -Dnative
 
 # Run dev mode (specific module)
 mvn quarkus:dev -pl fulfai-selling-partner-api -am
@@ -27,12 +28,12 @@ mvn test -pl fulfai-selling-partner-api -Dtest=HealthResourceTest
 
 ## Architecture
 
-Multi-module Quarkus 3.23.0 project for AWS Lambda REST APIs with native build support.
+Multi-module Quarkus 3.23.0 project for AWS Lambda APIs with native build support.
 
 ```
 fulfai-api/
 ├── pom.xml                           # Parent POM with shared config
-├── fulfai-common/                    # Shared code module
+├── fulfai-common-rest/               # Shared code for REST APIs
 │   └── src/main/java/com/fulfai/common/
 │       ├── dynamodb/                 # DynamoDB utilities
 │       ├── dto/                      # Shared DTOs (PaginatedResponse)
@@ -49,12 +50,18 @@ fulfai-api/
 │       ├── order/                    # Order management
 │       └── account/                  # Account management
 │
-└── fulfai-delivery-partner-api/      # Delivery/Driver API (port 8083)
-    └── src/main/java/com/fulfai/deliverypartner/
-        ├── company/                  # Delivery company CRUD
-        ├── driver/                   # Driver management
-        ├── assignment/               # Order-driver assignments
-        └── location/                 # GPS tracking + proximity search
+├── fulfai-delivery-partner-api/      # Delivery/Driver API (port 8083)
+│   └── src/main/java/com/fulfai/deliverypartner/
+│       ├── company/                  # Delivery company CRUD
+│       ├── driver/                   # Driver management
+│       ├── assignment/               # Order-driver assignments
+│       └── location/                 # GPS tracking + proximity search
+│
+└── fulfai-notification-websocket-api/  # WebSocket API (self-contained)
+    └── src/main/java/com/fulfai/notification/
+        ├── handler/                  # WebSocketHandler (Lambda entry point)
+        ├── connection/               # WebSocketConnection entity, repository, service
+        └── dynamodb/                 # Local ClientFactory (no fulfai-common-rest dependency)
 ```
 
 ## API Modules
@@ -71,6 +78,13 @@ fulfai-api/
 - **Entities**: Company, Driver, DriverOrderAssignment, DriverLocation
 - **Cognito Pool**: Driver pool
 - **Features**: Geohash-based proximity search for nearby drivers
+
+### Notification WebSocket API
+- **Package**: `com.fulfai.notification`
+- **Lambda Handler**: `WebSocketHandler` (raw Lambda, not REST)
+- **Routes**: `$connect` (IAM auth), `$disconnect`, `$default`, `sendMessage`
+- **Self-contained**: Does not depend on fulfai-common-rest (avoids native build conflicts)
+- **Auth**: Extracts user sub from `requestContext.identity.cognitoAuthenticationProvider`
 
 ## DynamoDB Tables
 
@@ -91,6 +105,11 @@ fulfai-api/
 | FulfAI-{env}-Driver | status-index |
 | FulfAI-{env}-DriverAssignment | order-index, assignment-status-index |
 | FulfAI-{env}-DriverLocation | geohash-index |
+
+### Notification WebSocket API
+| Table | GSIs |
+|-------|------|
+| FulfAI-{env}-WebSocketConnection | userSub-index |
 
 ## Adding New Entity (CRUD)
 
@@ -114,9 +133,14 @@ fulfai-api/
 ## Security
 
 ### REST APIs (Selling/Delivery Partner)
-- Use `CognitoSecurityProvider` in fulfai-common
+- Use `CognitoSecurityProvider` in fulfai-common-rest
 - Extracts user sub from Lambda event `requestContext.identity.cognitoAuthenticationProvider`
 - Use `CognitoSecurityContext` to access current user info
+
+### WebSocket API (Notification)
+- Uses IAM auth on `$connect` route
+- Extracts user sub inline in `WebSocketHandler.extractUserSub()` from `cognitoAuthenticationProvider`
+- No dependency on fulfai-common-rest to avoid native build conflicts with quarkus-amazon-lambda vs quarkus-amazon-lambda-rest
 
 ## Environment Variables
 

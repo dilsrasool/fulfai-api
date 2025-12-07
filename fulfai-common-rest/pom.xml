@@ -11,9 +11,9 @@
         <version>1.0-SNAPSHOT</version>
     </parent>
 
-    <artifactId>fulfai-common</artifactId>
-    <name>FulfAI Common</name>
-    <description>Shared code and utilities for all FulfAI APIs</description>
+    <artifactId>fulfai-common-rest</artifactId>
+    <name>FulfAI Common REST</name>
+    <description>Shared code and utilities for FulfAI REST APIs</description>
 
     <dependencies>
         <!-- Quarkus Core -->

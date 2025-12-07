@@ -11,9 +11,10 @@
     <name>FulfAI API Parent</name>
 
     <modules>
-        <module>fulfai-common</module>
+        <module>fulfai-common-rest</module>
         <module>fulfai-selling-partner-api</module>
         <module>fulfai-delivery-partner-api</module>
+        <module>fulfai-notification-websocket-api</module>
     </modules>
 
     <properties>
@@ -51,10 +52,10 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-            <!-- Common module -->
+            <!-- Common REST module -->
             <dependency>
                 <groupId>com.fulfai</groupId>
-                <artifactId>fulfai-common</artifactId>
+                <artifactId>fulfai-common-rest</artifactId>
                 <version>${project.version}</version>
             </dependency>
         </dependencies>
