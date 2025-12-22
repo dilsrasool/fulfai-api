@@ -36,6 +36,9 @@ public class DevBootstrap {
     @ConfigProperty(name = "account.table.name")
     String accountTableName;
 
+     @ConfigProperty(name = "userCompanyRole.table.name")
+    String userCompanyRoleTableName;
+
     @PostConstruct
     void init() {
         Log.info("=======================================");
@@ -54,5 +57,7 @@ public class DevBootstrap {
         TableCreator.createProductTable(dynamoDbClient, productTableName);
         TableCreator.createOrderTable(dynamoDbClient, orderTableName);
         TableCreator.createAccountTable(dynamoDbClient, accountTableName);
+        TableCreator.createUserCompanyRoleTable(dynamoDbClient, userCompanyRoleTableName);
+
     }
 }

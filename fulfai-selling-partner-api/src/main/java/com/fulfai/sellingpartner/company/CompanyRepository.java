@@ -1,5 +1,8 @@
 package com.fulfai.sellingpartner.company;
 
+import java.util.List;
+import java.util.ArrayList;
+
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fulfai.common.dynamodb.ClientFactory;
@@ -10,6 +13,8 @@ import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 
 @ApplicationScoped
 @RegisterForReflection
@@ -22,7 +27,9 @@ public class CompanyRepository {
     ClientFactory clientFactory;
 
     private DynamoDbTable<Company> getCompanyTable() {
-        return clientFactory.getEnhancedDynamoClient().table(tableName, Schemas.COMPANY_SCHEMA);
+        return clientFactory
+                .getEnhancedDynamoClient()
+                .table(tableName, Schemas.COMPANY_SCHEMA);
     }
 
     public Company getById(String id) {
@@ -39,5 +46,32 @@ public class CompanyRepository {
 
     public String getTableName() {
         return tableName;
+    }
+
+    /**
+     * ✅ Get ALL companies for a given ownerSub (GSI: ownerSub-index)
+     */
+    public List<Company> getAllByOwnerSub(String ownerSub) {
+        var index = getCompanyTable().index("ownerSub-index");
+
+        var queryConditional = QueryConditional.keyEqualTo(
+                Key.builder().partitionValue(ownerSub).build()
+        );
+
+        List<Company> results = new ArrayList<>();
+
+        index.query(queryConditional).forEach(page -> {
+            page.items().forEach(results::add);
+        });
+
+        return results;
+    }
+
+    /**
+     * ✅ Get first company (legacy behavior)
+     */
+    public Company getByOwnerSub(String ownerSub) {
+        List<Company> companies = getAllByOwnerSub(ownerSub);
+        return companies.isEmpty() ? null : companies.get(0);
     }
 }

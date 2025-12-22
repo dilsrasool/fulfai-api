@@ -6,9 +6,12 @@ import java.util.List;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
 
+import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRoleResponseDTO;
+
 @Data
 @RegisterForReflection
 public class CompanyResponseDTO {
+
     private String id;
     private String name;
     private String address;
@@ -23,4 +26,12 @@ public class CompanyResponseDTO {
     private List<String> operatingCountries;
     private Instant createdAt;
     private Instant updatedAt;
+    private String ownerSub;
+
+    /**
+     * 👥 Users with their roles.
+     * Populated in the service layer by querying UserCompanyRoleRepository,
+     * not stored directly in the Company entity.
+     */
+    private List<UserCompanyRoleResponseDTO> users;
 }

@@ -12,6 +12,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.List;
+import io.quarkus.security.Authenticated;
 
 @Path("/company")
 @Produces(MediaType.APPLICATION_JSON)
@@ -32,6 +34,26 @@ public class CompanyResource {
     public Response getCompanyById(@PathParam("id") String id) {
         CompanyResponseDTO company = companyService.getCompanyById(id);
         return Response.ok(company).build();
+    }
+
+    /**
+     * GET /company/me - Get the company for the currently logged-in user
+     */
+    @GET
+    @Path("/me")
+    @Authenticated
+    public CompanyResponseDTO getMyCompany() {
+        return companyService.getCompanyForCurrentUser();
+    }
+
+    /**
+     * GET /company/me/all - Get all companies for the currently logged-in user
+     */
+    @GET
+    @Path("/me/all")
+    @Authenticated
+    public List<CompanyResponseDTO> getAllMyCompanies() {
+        return companyService.getAllCompaniesForCurrentUser();
     }
 
     @PUT

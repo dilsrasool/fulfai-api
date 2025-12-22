@@ -1,10 +1,13 @@
 package com.fulfai.sellingpartner;
 
 import java.util.Arrays;
+import java.util.List;
 
 import com.fulfai.sellingpartner.category.Category;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.product.Product;
+
+
 
 import software.amazon.awssdk.services.dynamodb.DynamoDbClient;
 import software.amazon.awssdk.services.dynamodb.model.AttributeDefinition;
@@ -25,22 +28,40 @@ public class TableCreator {
     }
 
     public static void createCompanyTable(DynamoDbClient dynamoDbClient, String tableName) {
-        if (tableExists(dynamoDbClient, tableName)) {
-            return;
-        }
+    if (tableExists(dynamoDbClient, tableName)) {
+        return;
+    }
 
-        dynamoDbClient.createTable(builder -> builder
-                .tableName(tableName)
-                .keySchema(KeySchemaElement.builder()
-                        .attributeName("id")
-                        .keyType(KeyType.HASH)
-                        .build())
-                .attributeDefinitions(AttributeDefinition.builder()
+    dynamoDbClient.createTable(builder -> builder
+        .tableName(tableName)
+        .keySchema(KeySchemaElement.builder()
+                .attributeName("id")
+                .keyType(KeyType.HASH)
+                .build())
+        .attributeDefinitions(Arrays.asList(
+                AttributeDefinition.builder()
                         .attributeName("id")
                         .attributeType(ScalarAttributeType.S)
+                        .build(),
+                AttributeDefinition.builder()
+                        .attributeName("ownerSub")
+                        .attributeType(ScalarAttributeType.S)
+                        .build()))
+        .globalSecondaryIndexes(
+                GlobalSecondaryIndex.builder()
+                        .indexName("ownerSub-index")
+                        .keySchema(
+                                KeySchemaElement.builder()
+                                        .attributeName("ownerSub")
+                                        .keyType(KeyType.HASH)
+                                        .build())
+                        .projection(Projection.builder()
+                                .projectionType(ProjectionType.ALL)
+                                .build())
                         .build())
-                .billingMode(BillingMode.PAY_PER_REQUEST));
-    }
+        .billingMode(BillingMode.PAY_PER_REQUEST));
+        }
+
 
     public static void createBranchTable(DynamoDbClient dynamoDbClient, String tableName) {
         if (tableExists(dynamoDbClient, tableName)) {
@@ -229,4 +250,25 @@ public class TableCreator {
                                 .build()))
                 .billingMode(BillingMode.PAY_PER_REQUEST));
     }
+
+     // ✅ New: UserCompanyRole table
+    public static void createUserCompanyRoleTable(DynamoDbClient dynamoDbClient, String tableName) {
+    if (tableExists(dynamoDbClient, tableName)) return;
+
+    dynamoDbClient.createTable(builder -> builder
+        .tableName(tableName)
+        .keySchema(
+            KeySchemaElement.builder().attributeName("userId").keyType(KeyType.HASH).build(),
+            KeySchemaElement.builder().attributeName("companyId").keyType(KeyType.RANGE).build())
+        .attributeDefinitions(List.of(
+            AttributeDefinition.builder().attributeName("userId").attributeType(ScalarAttributeType.S).build(),
+            AttributeDefinition.builder().attributeName("companyId").attributeType(ScalarAttributeType.S).build()))
+        .globalSecondaryIndexes(GlobalSecondaryIndex.builder()
+            .indexName("companyId-index")
+            .keySchema(KeySchemaElement.builder().attributeName("companyId").keyType(KeyType.HASH).build())
+            .projection(Projection.builder().projectionType(ProjectionType.ALL).build())
+            .build())
+        .billingMode(BillingMode.PAY_PER_REQUEST));
+}
+
 }

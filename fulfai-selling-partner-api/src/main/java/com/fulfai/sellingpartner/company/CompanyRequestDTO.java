@@ -1,8 +1,10 @@
 package com.fulfai.sellingpartner.company;
 
+import java.time.Instant;
 import java.util.List;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import jakarta.json.bind.annotation.JsonbDateFormat;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -49,4 +51,9 @@ public class CompanyRequestDTO {
     private String website;
 
     private List<String> operatingCountries;
+
+    // ✅ Added: startDate with proper JSONB format
+    // Accepts full ISO timestamps like "2025-11-19T00:00:00Z"
+    @JsonbDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
+    private Instant startDate;
 }

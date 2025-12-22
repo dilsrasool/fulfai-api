@@ -34,6 +34,8 @@ public class CompanyResource {
         return Response.ok(company).build();
     }
 
+    
+
     @PUT
     @Path("/{id}")
     public Response updateCompany(@PathParam("id") String id, @Valid CompanyRequestDTO companyDTO) {

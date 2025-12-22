@@ -10,6 +10,7 @@ import com.fulfai.sellingpartner.company.Company;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.order.OrderItem;
 import com.fulfai.sellingpartner.product.Product;
+import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRole;
 
 import software.amazon.awssdk.enhanced.dynamodb.EnhancedType;
 import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
@@ -18,51 +19,56 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.StaticAttributeTags;
 public class Schemas {
 
         public static final TableSchema<Company> COMPANY_SCHEMA = TableSchema.builder(Company.class)
-                        .newItemSupplier(Company::new)
-                        .addAttribute(String.class, a -> a.name("id")
-                                        .getter(Company::getId)
-                                        .setter(Company::setId)
-                                        .tags(StaticAttributeTags.primaryPartitionKey()))
-                        .addAttribute(String.class, a -> a.name("name")
-                                        .getter(Company::getName)
-                                        .setter(Company::setName))
-                        .addAttribute(String.class, a -> a.name("address")
-                                        .getter(Company::getAddress)
-                                        .setter(Company::setAddress))
-                        .addAttribute(String.class, a -> a.name("city")
-                                        .getter(Company::getCity)
-                                        .setter(Company::setCity))
-                        .addAttribute(String.class, a -> a.name("country")
-                                        .getter(Company::getCountry)
-                                        .setter(Company::setCountry))
-                        .addAttribute(String.class, a -> a.name("email")
-                                        .getter(Company::getEmail)
-                                        .setter(Company::setEmail))
-                        .addAttribute(String.class, a -> a.name("licenseNo")
-                                        .getter(Company::getLicenseNo)
-                                        .setter(Company::setLicenseNo))
-                        .addAttribute(String.class, a -> a.name("logo")
-                                        .getter(Company::getLogo)
-                                        .setter(Company::setLogo))
-                        .addAttribute(String.class, a -> a.name("phoneNumber")
-                                        .getter(Company::getPhoneNumber)
-                                        .setter(Company::setPhoneNumber))
-                        .addAttribute(String.class, a -> a.name("trn")
-                                        .getter(Company::getTrn)
-                                        .setter(Company::setTrn))
-                        .addAttribute(String.class, a -> a.name("website")
-                                        .getter(Company::getWebsite)
-                                        .setter(Company::setWebsite))
-                        .addAttribute(EnhancedType.listOf(String.class), a -> a.name("operatingCountries")
-                                        .getter(Company::getOperatingCountries)
-                                        .setter(Company::setOperatingCountries))
-                        .addAttribute(Instant.class, a -> a.name("createdAt")
-                                        .getter(Company::getCreatedAt)
-                                        .setter(Company::setCreatedAt))
-                        .addAttribute(Instant.class, a -> a.name("updatedAt")
-                                        .getter(Company::getUpdatedAt)
-                                        .setter(Company::setUpdatedAt))
-                        .build();
+                         .newItemSupplier(Company::new) 
+                         .addAttribute(String.class, a -> a.name("id") 
+                                                .getter(Company::getId) 
+                                                .setter(Company::setId) 
+                                                .tags(StaticAttributeTags.primaryPartitionKey())) 
+                         .addAttribute(String.class, a -> a.name("ownerSub") 
+                                                .getter(Company::getOwnerSub) 
+                                                .setter(Company::setOwnerSub) 
+                                                .tags(StaticAttributeTags.secondaryPartitionKey("ownerSub-index")))
+                         .addAttribute(String.class, a -> a.name("name") 
+                                                .getter(Company::getName) 
+                                                .setter(Company::setName)) 
+                         .addAttribute(String.class, a -> a.name("address") 
+                                                .getter(Company::getAddress) 
+                                                .setter(Company::setAddress)) 
+                         .addAttribute(String.class, a -> a.name("city") 
+                                                .getter(Company::getCity) 
+                                                .setter(Company::setCity)) 
+                         .addAttribute(String.class, a -> a.name("country") 
+                                                .getter(Company::getCountry) 
+                                                .setter(Company::setCountry)) 
+                         .addAttribute(String.class, a -> a.name("email") 
+                                                .getter(Company::getEmail) 
+                                                .setter(Company::setEmail)) 
+                         .addAttribute(String.class, a -> a.name("licenseNo") 
+                                                .getter(Company::getLicenseNo) 
+                                                .setter(Company::setLicenseNo)) 
+                         .addAttribute(String.class, a -> a.name("logo") 
+                                                .getter(Company::getLogo) 
+                                                .setter(Company::setLogo)) 
+                         .addAttribute(String.class, a -> a.name("phoneNumber") 
+                                                .getter(Company::getPhoneNumber) 
+                                                .setter(Company::setPhoneNumber)) 
+                         .addAttribute(String.class, a -> a.name("trn") 
+                                                .getter(Company::getTrn) 
+                                                .setter(Company::setTrn)) 
+                         .addAttribute(String.class, a -> a.name("website") 
+                                                .getter(Company::getWebsite) 
+                                                .setter(Company::setWebsite)) 
+                         .addAttribute(EnhancedType.listOf(String.class), a -> a.name("operatingCountries") 
+                                                .getter(Company::getOperatingCountries) 
+                                                .setter(Company::setOperatingCountries)) 
+                         .addAttribute(Instant.class, a -> a.name("createdAt") 
+                                                .getter(Company::getCreatedAt) 
+                                                .setter(Company::setCreatedAt)) 
+                         .addAttribute(Instant.class, a -> a.name("updatedAt") 
+                                                .getter(Company::getUpdatedAt) 
+                                                .setter(Company::setUpdatedAt)) 
+                         .build();
+
 
         public static final TableSchema<Branch> BRANCH_SCHEMA = TableSchema.builder(Branch.class)
                         .newItemSupplier(Branch::new)
@@ -287,7 +293,7 @@ public class Schemas {
                         .addAttribute(Instant.class, a -> a.name("updatedAt")
                                         .getter(Order::getUpdatedAt)
                                         .setter(Order::setUpdatedAt))
-                        .build();
+                .build();
 
         public static final TableSchema<Account> ACCOUNT_SCHEMA = TableSchema.builder(Account.class)
                         .newItemSupplier(Account::new)
@@ -321,4 +327,26 @@ public class Schemas {
                                         .getter(Account::getUpdatedAt)
                                         .setter(Account::setUpdatedAt))
                         .build();
+         // ✅ New schema for UserCompanyRole
+    public static final TableSchema<UserCompanyRole> USER_COMPANY_ROLE_SCHEMA =
+    TableSchema.builder(UserCompanyRole.class)
+        .newItemSupplier(UserCompanyRole::new)
+        .addAttribute(String.class, a -> a.name("userId")
+            .getter(UserCompanyRole::getUserId)
+            .setter(UserCompanyRole::setUserId)
+            .tags(StaticAttributeTags.primaryPartitionKey()))
+        .addAttribute(String.class, a -> a.name("companyId")
+            .getter(UserCompanyRole::getCompanyId)
+            .setter(UserCompanyRole::setCompanyId)
+            .tags(
+                StaticAttributeTags.primarySortKey(),
+                StaticAttributeTags.secondaryPartitionKey("companyId-index")   // ✅ declare GSI partition key
+            ))
+        .addAttribute(String.class, a -> a.name("role")
+            .getter(UserCompanyRole::getRole)
+            .setter(UserCompanyRole::setRole))
+        .build();
+
+
+
 }

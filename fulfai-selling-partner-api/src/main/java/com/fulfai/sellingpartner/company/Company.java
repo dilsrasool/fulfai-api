@@ -5,9 +5,7 @@ import java.util.List;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 
 @Data
 @DynamoDbBean
@@ -28,11 +26,20 @@ public class Company {
     private List<String> operatingCountries;
     private Instant createdAt;
     private Instant updatedAt;
+    private String ownerSub;
 
+    // 🔑 Primary Key
     @DynamoDbPartitionKey
     @DynamoDbAttribute("id")
     public String getId() {
         return id;
+    }
+
+    // ✅ GSI Partition Key
+    @DynamoDbSecondaryPartitionKey(indexNames = "ownerSub-index")
+    @DynamoDbAttribute("ownerSub")
+    public String getOwnerSub() {
+        return ownerSub;
     }
 
     @DynamoDbAttribute("name")
