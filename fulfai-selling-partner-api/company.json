@@ -1,0 +1,6 @@
+{
+  "id": { "S": "company-001" },
+  "ownerSub": { "S": "b276b064-50c1-70fc-6d78-18d62b7b4fd0" },
+  "name": { "S": "Test Company" },
+  "status": { "S": "ACTIVE" }
+}

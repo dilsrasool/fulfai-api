@@ -169,6 +169,15 @@
             <version>${awssdk.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
+<dependency>
+    <groupId>io.quarkiverse.amazonservices</groupId>
+    <artifactId>quarkus-amazon-ses</artifactId>
+</dependency>
+
+
+
+
+
     </dependencies>
 
     <build>

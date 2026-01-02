@@ -9,8 +9,10 @@ import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+
 import java.util.List;
 
 @Path("/company/{companyId}/users")
@@ -22,33 +24,74 @@ public class UserCompanyRoleResource {
     UserCompanyRoleService userCompanyRoleService;
 
     /**
-     * 👥 Add a user with a role to a company
+     * 👤 Add user to company or branch
+     *
+     * POST /company/{companyId}/users
+     * Optional: ?branchId=xxx
+     *
+     * Body:
+     * {
+     *   "email": "user@domain.com",
+     *   "role": "STAFF"
+     * }
      */
     @POST
-    public Response addUserToCompany(@PathParam("companyId") String companyId,
-                                     @Valid UserCompanyRoleRequestDTO request) {
-        // Ensure the request carries the companyId
+    public Response addUserToCompany(
+            @PathParam("companyId") String companyId,
+            @QueryParam("branchId") String branchId,
+            @Valid UserCompanyRoleRequestDTO request
+    ) {
         request.setCompanyId(companyId);
+        request.setBranchId(branchId);
+
         userCompanyRoleService.addUserToCompany(request);
+
         return Response.status(Response.Status.CREATED).build();
     }
 
     /**
      * 👥 Get all users for a company
+     *
+     * GET /company/{companyId}/users
      */
     @GET
-    public List<UserCompanyRoleResponseDTO> getUsersForCompany(@PathParam("companyId") String companyId) {
+    public List<UserCompanyRoleResponseDTO> getUsersForCompany(
+            @PathParam("companyId") String companyId
+    ) {
         return userCompanyRoleService.getUsersForCompany(companyId);
     }
 
     /**
-     * 👥 Remove a user from a company
+     * 👥 Get all users for a specific branch
+     *
+     * GET /company/{companyId}/users/branch/{branchId}
+     */
+    @GET
+    @Path("/branch/{branchId}")
+    public List<UserCompanyRoleResponseDTO> getUsersForBranch(
+            @PathParam("companyId") String companyId,
+            @PathParam("branchId") String branchId
+    ) {
+        return userCompanyRoleService.getUsersForBranch(companyId, branchId);
+    }
+
+    /**
+     * ❌ Remove user from company or branch (EMAIL-based)
+     *
+   
      */
     @DELETE
-    @Path("/{userId}")
-    public Response removeUserFromCompany(@PathParam("companyId") String companyId,
-                                          @PathParam("userId") String userId) {
-        userCompanyRoleService.removeUserFromCompany(companyId, userId);
+    public Response removeUserFromCompany(
+            @PathParam("companyId") String companyId,
+            @QueryParam("email") String email,
+            @QueryParam("branchId") String branchId
+    ) {
+        userCompanyRoleService.removeUserFromCompanyByEmail(
+                companyId,
+                branchId,
+                email
+        );
         return Response.noContent().build();
     }
+
 }

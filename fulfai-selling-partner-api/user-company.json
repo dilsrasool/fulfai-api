@@ -1,0 +1,5 @@
+{
+  "userId": { "S": "b276b064-50c1-70fc-6d78-18d62b7b4fd0" },
+  "companyId": { "S": "company-001" },
+  "isPrimary": { "BOOL": true }
+}

@@ -31,116 +31,151 @@ public class CompanyService {
     @Inject
     SecurityIdentity securityIdentity;
 
-    /**
-     * Create a new company and automatically set ownerSub from the logged-in user. also add a record in UserCompanyRole table
-     */
+    /* ============================
+       CREATE COMPANY
+    ============================ */
+
     public CompanyResponseDTO createCompany(@Valid CompanyRequestDTO companyDTO) {
-            Company company = companyMapper.toEntity(companyDTO);
 
-            Instant now = Instant.now();
-            company.setCreatedAt(now);
-            company.setUpdatedAt(now);
-            company.setId(UUID.randomUUID().toString());
+        Company company = companyMapper.toEntity(companyDTO);
 
-            // Set ownerSub from authenticated user
-            String sub = securityIdentity.getPrincipal().getName();
-            company.setOwnerSub(sub);
+        Instant now = Instant.now();
+        company.setId(UUID.randomUUID().toString());
+        company.setCreatedAt(now);
+        company.setUpdatedAt(now);
 
-            // Save company
-            companyRepository.save(company);
-            Log.debugf("Created company with id: %s, ownerSub: %s", company.getId(), sub);
+        String sub = securityIdentity.getPrincipal().getName();
+        company.setOwnerSub(sub);
 
-            // ✅ Also create corresponding UserCompanyRole record
-            UserCompanyRole role = new UserCompanyRole();
-            role.setUserId(sub);
-            role.setCompanyId(company.getId());
-            role.setRole("OWNER"); // or whatever default role you want
-            userCompanyRoleRepository.save(role);
+        companyRepository.save(company);
+        Log.debugf("Created company %s by user %s", company.getId(), sub);
 
-            return enrichWithUsers(companyMapper.toResponseDTO(company));
-}
+        // ✅ Assign OWNER role at company level
+        UserCompanyRole role = new UserCompanyRole();
+        role.setUserId(sub);
+        role.setCompanyAndBranch(company.getId(), null);
+        role.setRole("OWNER");
 
+        userCompanyRoleRepository.save(role);
 
-    /**
-     * Get company by primary key id
-     */
-    public CompanyResponseDTO getCompanyById(String id) {
-        Company company = companyRepository.getById(id);
-        if (company != null) {
-            return enrichWithUsers(companyMapper.toResponseDTO(company));
-        } else {
-            throw new NotFoundException("Company not found with id: " + id);
-        }
+        return enrichWithUsers(companyMapper.toResponseDTO(company));
     }
 
-    /**
-     * Get first company for currently logged-in user (/company/me)
-     */
+    /* ============================
+       GET COMPANY
+    ============================ */
+
+    public CompanyResponseDTO getCompanyById(String id) {
+        Company company = companyRepository.getById(id);
+        if (company == null) {
+            throw new NotFoundException("Company not found with id: " + id);
+        }
+        return enrichWithUsers(companyMapper.toResponseDTO(company));
+    }
+
     public CompanyResponseDTO getCompanyForCurrentUser() {
         String sub = securityIdentity.getPrincipal().getName();
         Company company = companyRepository.getByOwnerSub(sub);
-        if (company != null) {
-            return enrichWithUsers(companyMapper.toResponseDTO(company));
-        } else {
+        if (company == null) {
             throw new NotFoundException("Company not found for current user");
         }
+        return enrichWithUsers(companyMapper.toResponseDTO(company));
     }
 
-    /**
-     * Get ALL companies for currently logged-in user (/company/me/all)
-     */
     public List<CompanyResponseDTO> getAllCompaniesForCurrentUser() {
         String sub = securityIdentity.getPrincipal().getName();
-        List<Company> companies = companyRepository.getAllByOwnerSub(sub);
-        return companies.stream()
+        return companyRepository.getAllByOwnerSub(sub)
+                .stream()
                 .map(companyMapper::toResponseDTO)
                 .map(this::enrichWithUsers)
                 .collect(Collectors.toList());
     }
 
-    /**
-     * Update company by id
-     */
-    public CompanyResponseDTO updateCompanyById(String id, @Valid CompanyRequestDTO companyDTO) {
-        Company originalCompany = companyRepository.getById(id);
-        if (originalCompany != null) {
-            Company company = companyMapper.toEntity(companyDTO);
-            company.setId(id);
-            company.setOwnerSub(originalCompany.getOwnerSub()); // preserve ownerSub
-            company.setCreatedAt(originalCompany.getCreatedAt());
-            company.setUpdatedAt(Instant.now()); // update timestamp
+    /* ============================
+       UPDATE COMPANY
+    ============================ */
 
-            companyRepository.save(company);
-            Log.debugf("Updated company with id: %s", id);
+    public CompanyResponseDTO updateCompanyById(
+            String id,
+            @Valid CompanyRequestDTO companyDTO
+    ) {
 
-            return enrichWithUsers(companyMapper.toResponseDTO(company));
-        } else {
+        Company existing = companyRepository.getById(id);
+        if (existing == null) {
             throw new NotFoundException("Company not found with id: " + id);
         }
+
+        Company updated = companyMapper.toEntity(companyDTO);
+        updated.setId(id);
+        updated.setOwnerSub(existing.getOwnerSub());
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setUpdatedAt(Instant.now());
+
+        companyRepository.save(updated);
+        Log.debugf("Updated company %s", id);
+
+        return enrichWithUsers(companyMapper.toResponseDTO(updated));
     }
 
-    /**
-     * Delete company by id
-     */
+    /* ============================
+       DELETE COMPANY
+    ============================ */
+
     public void deleteCompanyById(String id) {
+
         Company company = companyRepository.getById(id);
-        if (company != null) {
-            companyRepository.delete(id);
-            Log.debugf("Deleted company with id: %s", id);
-        } else {
+        if (company == null) {
             throw new NotFoundException("Company not found with id: " + id);
         }
+
+        // ✅ Cleanup roles
+        userCompanyRoleRepository.getByCompanyId(id)
+                .forEach(role ->
+                        userCompanyRoleRepository.delete(
+                                role.getUserId(),
+                                role.getCompanyId(),
+                                role.getBranchId()
+                        )
+                );
+
+        companyRepository.delete(id);
+        Log.debugf("Deleted company %s and cleaned up roles", id);
     }
 
-    /**
-     * Helper: enrich CompanyResponseDTO with users from UserCompanyRoleRepository
-     */
+    /* ============================
+       ENRICH USERS (SAFE DTO)
+    ============================ */
+
     private CompanyResponseDTO enrichWithUsers(CompanyResponseDTO dto) {
-        List<UserCompanyRole> roles = userCompanyRoleRepository.getByCompanyId(dto.getId());
-        List<UserCompanyRoleResponseDTO> roleDTOs = roles.stream()
-                .map(r -> new UserCompanyRoleResponseDTO(r.getUserId(), r.getCompanyId(), r.getRole()))
-                .collect(Collectors.toList());
-        dto.setUsers(roleDTOs);
+
+        List<UserCompanyRoleResponseDTO> users =
+                userCompanyRoleRepository.getByCompanyId(dto.getId())
+                        .stream()
+                        .map(role -> {
+                            UserCompanyRoleResponseDTO r = new UserCompanyRoleResponseDTO();
+                            r.setUserId(role.getUserId());
+                            r.setCompanyId(role.getCompanyId());
+                            r.setBranchId(role.getBranchId());
+                            r.setRole(role.getRole());
+
+                            // ✅ Safe display name (no raw IDs)
+                            r.setDisplayName(resolveDisplayName(role.getUserId()));
+
+                            return r;
+                        })
+                        .collect(Collectors.toList());
+
+        dto.setUsers(users);
         return dto;
+    }
+
+    /* ============================
+       DISPLAY NAME RESOLVER
+    ============================ */
+
+    private String resolveDisplayName(String userId) {
+        if (userId == null) return "Unknown";
+        if (userId.contains("@")) return userId;
+        return "User-" + userId.substring(0, Math.min(6, userId.length()));
     }
 }

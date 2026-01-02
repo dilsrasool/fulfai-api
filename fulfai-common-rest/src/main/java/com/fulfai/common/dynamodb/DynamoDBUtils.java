@@ -491,4 +491,66 @@ public class DynamoDBUtils {
             super(message, cause);
         }
     }
+
+
+    public static <T> PaginatedResponse<T> queryBySecondaryIndex(
+        DynamoDbTable<T> table,
+        String indexName,
+        String partitionKey,
+        String nextToken,
+        Integer limit
+) {
+    DynamoDbIndex<T> index = table.index(indexName);
+    return queryGsiByPartitionKey(index, partitionKey, nextToken, limit);
+}
+
+public static <T> PaginatedResponse<T> queryBySecondaryIndexAndSortKey(
+        DynamoDbTable<T> table,
+        String indexName,
+        String partitionKey,
+        String sortKey,
+        String nextToken,
+        Integer limit
+) {
+    DynamoDbIndex<T> index = table.index(indexName);
+    return queryGsiByPartitionKeyAndSortKey(
+            index,
+            partitionKey,
+            sortKey,
+            nextToken,
+            limit
+    );
+}
+
+
+public static <T> PaginatedResponse<T> queryBySecondaryIndexWithBeginsWith(
+        DynamoDbTable<T> table,
+        String indexName,
+        String partitionKey,
+        String sortKeyPrefix,
+        String nextToken,
+        Integer limit
+) {
+    DynamoDbIndex<T> index = table.index(indexName);
+    return queryGsiByPartitionKeyAndSortKeyBeginsWith(
+            index,
+            partitionKey,
+            sortKeyPrefix,
+            nextToken,
+            limit
+    );
+}
+
+/**
+ * Create a condition expression to check if an attribute does NOT exist.
+ * Useful for conditional inserts (prevent duplicates).
+ */
+public static Expression attributeNotExists(String attributeName) {
+    return Expression.builder()
+            .expression("attribute_not_exists(#attr)")
+            .putExpressionName("#attr", attributeName)
+            .build();
+}
+
+
 }

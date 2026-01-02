@@ -1,0 +1,7 @@
+{
+  "userId": { "S": "b276b064-50c1-70fc-6d78-18d62b7b4fd0" },
+  "companyBranch": { "S": "company-001#ROOT" },
+  "companyId": { "S": "company-001" },
+  "branchUser": { "S": "ROOT#b276b064-50c1-70fc-6d78-18d62b7b4fd0" },
+  "role": { "S": "OWNER" }
+}

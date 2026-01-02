@@ -7,6 +7,7 @@ import com.fulfai.sellingpartner.account.Account;
 import com.fulfai.sellingpartner.branch.Branch;
 import com.fulfai.sellingpartner.category.Category;
 import com.fulfai.sellingpartner.company.Company;
+import com.fulfai.sellingpartner.companyJoinRequest.CompanyJoinRequest;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.order.OrderItem;
 import com.fulfai.sellingpartner.product.Product;
@@ -327,25 +328,140 @@ public class Schemas {
                                         .getter(Account::getUpdatedAt)
                                         .setter(Account::setUpdatedAt))
                         .build();
-         // ✅ New schema for UserCompanyRole
-    public static final TableSchema<UserCompanyRole> USER_COMPANY_ROLE_SCHEMA =
+     // ✅ UserCompanyRole schema (CORRECT)
+public static final TableSchema<UserCompanyRole> USER_COMPANY_ROLE_SCHEMA =
     TableSchema.builder(UserCompanyRole.class)
         .newItemSupplier(UserCompanyRole::new)
+
+        /* ============================
+           PRIMARY KEY
+        ============================ */
+
         .addAttribute(String.class, a -> a.name("userId")
             .getter(UserCompanyRole::getUserId)
             .setter(UserCompanyRole::setUserId)
             .tags(StaticAttributeTags.primaryPartitionKey()))
+
+        .addAttribute(String.class, a -> a.name("companyBranch")
+            .getter(UserCompanyRole::getCompanyBranch)
+            .setter(UserCompanyRole::setCompanyBranch)
+            .tags(StaticAttributeTags.primarySortKey()))
+
+        /* ============================
+           GSI: companyId-index
+        ============================ */
+
         .addAttribute(String.class, a -> a.name("companyId")
             .getter(UserCompanyRole::getCompanyId)
             .setter(UserCompanyRole::setCompanyId)
-            .tags(
-                StaticAttributeTags.primarySortKey(),
-                StaticAttributeTags.secondaryPartitionKey("companyId-index")   // ✅ declare GSI partition key
-            ))
+            .tags(StaticAttributeTags.secondaryPartitionKey("companyId-index")))
+
+        // ⚠️ DERIVED ATTRIBUTE — NO SETTER
+        .addAttribute(String.class, a -> a.name("branchUser")
+            .getter(UserCompanyRole::getBranchUser)
+            .setter((item, value) -> {}) // ✅ NO-OP setter
+            .tags(StaticAttributeTags.secondarySortKey("companyId-index")))
+
+        /* ============================
+           OTHER ATTRIBUTES
+        ============================ */
+
         .addAttribute(String.class, a -> a.name("role")
             .getter(UserCompanyRole::getRole)
             .setter(UserCompanyRole::setRole))
+
         .build();
+
+
+    public static final TableSchema<CompanyJoinRequest> COMPANY_JOIN_REQUEST_SCHEMA =
+        TableSchema.builder(CompanyJoinRequest.class)
+                .newItemSupplier(CompanyJoinRequest::new)
+
+                /* =========================
+                   PRIMARY KEY
+                ========================== */
+
+                .addAttribute(String.class, a -> a.name("companyId")
+                        .getter(CompanyJoinRequest::getCompanyId)
+                        .setter(CompanyJoinRequest::setCompanyId)
+                        .tags(StaticAttributeTags.primaryPartitionKey()))
+
+                .addAttribute(String.class, a -> a.name("requestId")
+                        .getter(CompanyJoinRequest::getRequestId)
+                        .setter(CompanyJoinRequest::setRequestId)
+                        .tags(StaticAttributeTags.primarySortKey()))
+
+                /* =========================
+                   CORE FIELDS
+                ========================== */
+
+                .addAttribute(String.class, a -> a.name("userId")
+                        .getter(CompanyJoinRequest::getUserId)
+                        .setter(CompanyJoinRequest::setUserId))
+
+                .addAttribute(String.class, a -> a.name("status")
+                        .getter(CompanyJoinRequest::getStatus)
+                        .setter(CompanyJoinRequest::setStatus))
+
+                .addAttribute(String.class, a -> a.name("joinCode")
+                        .getter(CompanyJoinRequest::getJoinCode)
+                        .setter(CompanyJoinRequest::setJoinCode))
+
+                .addAttribute(String.class, a -> a.name("message")
+                        .getter(CompanyJoinRequest::getMessage)
+                        .setter(CompanyJoinRequest::setMessage))
+
+                /* =========================
+                   AUDIT FIELDS
+                ========================== */
+
+                .addAttribute(Instant.class, a -> a.name("requestedAt")
+                        .getter(CompanyJoinRequest::getRequestedAt)
+                        .setter(CompanyJoinRequest::setRequestedAt))
+
+                .addAttribute(Instant.class, a -> a.name("reviewedAt")
+                        .getter(CompanyJoinRequest::getReviewedAt)
+                        .setter(CompanyJoinRequest::setReviewedAt))
+
+                .addAttribute(String.class, a -> a.name("reviewedBy")
+                        .getter(CompanyJoinRequest::getReviewedBy)
+                        .setter(CompanyJoinRequest::setReviewedBy))
+
+                /* =========================
+                   GSI #1
+                   List requests by company + status
+                ========================== */
+
+                .addAttribute(String.class, a -> a.name("GSI1PK")
+                        .getter(CompanyJoinRequest::getGsi1Pk)
+                        .setter(CompanyJoinRequest::setGsi1Pk)
+                        .tags(StaticAttributeTags.secondaryPartitionKey("company-status-index")))
+
+                .addAttribute(String.class, a -> a.name("GSI1SK")
+                        .getter(CompanyJoinRequest::getGsi1Sk)
+                        .setter(CompanyJoinRequest::setGsi1Sk)
+                        .tags(StaticAttributeTags.secondarySortKey("company-status-index")))
+
+                /* =========================
+                   GSI #2
+                   Prevent duplicate requests
+                ========================== */
+
+                .addAttribute(String.class, a -> a.name("GSI2PK")
+                        .getter(CompanyJoinRequest::getGsi2Pk)
+                        .setter(CompanyJoinRequest::setGsi2Pk)
+                        .tags(StaticAttributeTags.secondaryPartitionKey("user-company-index")))
+
+                .addAttribute(String.class, a -> a.name("GSI2SK")
+                        .getter(CompanyJoinRequest::getGsi2Sk)
+                        .setter(CompanyJoinRequest::setGsi2Sk)
+                        .tags(StaticAttributeTags.secondarySortKey("user-company-index")))
+
+                .build();
+
+
+
+  
 
 
 

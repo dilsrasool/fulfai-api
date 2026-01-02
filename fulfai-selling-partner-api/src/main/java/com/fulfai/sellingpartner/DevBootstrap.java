@@ -36,8 +36,14 @@ public class DevBootstrap {
     @ConfigProperty(name = "account.table.name")
     String accountTableName;
 
-     @ConfigProperty(name = "userCompanyRole.table.name")
+    @ConfigProperty(name = "userCompanyRole.table.name")
     String userCompanyRoleTableName;
+
+    @ConfigProperty(name = "companyJoinRequest.table.name")
+    String companyJoinRequestTableName;
+
+  
+
 
     @PostConstruct
     void init() {
@@ -49,6 +55,9 @@ public class DevBootstrap {
         Log.infof("Creating Product Table: %s", productTableName);
         Log.infof("Creating Order Table: %s", orderTableName);
         Log.infof("Creating Account Table: %s", accountTableName);
+        
+
+
         Log.info("=======================================");
 
         TableCreator.createCompanyTable(dynamoDbClient, companyTableName);
@@ -58,6 +67,9 @@ public class DevBootstrap {
         TableCreator.createOrderTable(dynamoDbClient, orderTableName);
         TableCreator.createAccountTable(dynamoDbClient, accountTableName);
         TableCreator.createUserCompanyRoleTable(dynamoDbClient, userCompanyRoleTableName);
+        TableCreator.createCompanyJoinRequestTable(dynamoDbClient, companyJoinRequestTableName);
+        
+
 
     }
 }

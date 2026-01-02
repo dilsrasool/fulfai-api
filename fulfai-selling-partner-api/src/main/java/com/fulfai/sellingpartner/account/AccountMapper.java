@@ -5,6 +5,7 @@ import org.mapstruct.factory.Mappers;
 
 @Mapper(componentModel = "cdi")
 public interface AccountMapper {
+
     AccountMapper INSTANCE = Mappers.getMapper(AccountMapper.class);
 
     AccountResponseDTO toResponseDTO(Account entity);
