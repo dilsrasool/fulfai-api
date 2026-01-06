@@ -13,9 +13,13 @@ import com.fulfai.sellingpartner.Schemas;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import software.amazon.awssdk.core.pagination.sync.SdkIterable;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Expression;
+import software.amazon.awssdk.enhanced.dynamodb.Key;
+import software.amazon.awssdk.enhanced.dynamodb.model.Page;
+import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.TransactUpdateItemEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
@@ -33,7 +37,7 @@ public class CompanyJoinRequestRepository {
     ClientFactory clientFactory;
 
     /* =========================
-       TABLE (PRIVATE)
+       TABLE
     ========================== */
 
     private DynamoDbTable<CompanyJoinRequest> table() {
@@ -51,7 +55,7 @@ public class CompanyJoinRequestRepository {
     }
 
     /* =========================
-       GET BY COMPANY + REQUEST ID
+       GET BY PK + SK
     ========================== */
 
     public CompanyJoinRequest getByCompanyAndRequestId(
@@ -66,7 +70,7 @@ public class CompanyJoinRequestRepository {
     }
 
     /* =========================
-       LIST REQUESTS BY STATUS
+       LIST BY COMPANY + STATUS
     ========================== */
 
     public PaginatedResponse<CompanyJoinRequest> listByCompanyAndStatus(
@@ -76,6 +80,7 @@ public class CompanyJoinRequestRepository {
             Integer limit
     ) {
 
+        // No status filter → primary index
         if (status == null || status.isBlank()) {
             return DynamoDBUtils.queryByPartitionKey(
                     table(),
@@ -85,6 +90,7 @@ public class CompanyJoinRequestRepository {
             );
         }
 
+        // Status filter → company-status-index
         DynamoDbIndex<CompanyJoinRequest> index =
                 table().index("company-status-index");
 
@@ -98,7 +104,8 @@ public class CompanyJoinRequestRepository {
     }
 
     /* =========================
-       CHECK DUPLICATE REQUEST
+       DUPLICATE CHECK
+       (user-company-index)
     ========================== */
 
     public boolean existsPendingRequest(
@@ -109,57 +116,71 @@ public class CompanyJoinRequestRepository {
         DynamoDbIndex<CompanyJoinRequest> index =
                 table().index("user-company-index");
 
-        String sortKeyPrefix = companyId + "#" + STATUS_PENDING;
-
-        PaginatedResponse<CompanyJoinRequest> response =
-                DynamoDBUtils.queryGsiByPartitionKeyAndSortKeyBeginsWith(
-                        index,
-                        userId,
-                        sortKeyPrefix,
-                        null,
-                        1
+        QueryConditional condition =
+                QueryConditional.keyEqualTo(
+                        Key.builder()
+                                .partitionValue(userId)
+                                .sortValue(companyId)
+                                .build()
                 );
 
-        return response.getItems() != null &&
-               !response.getItems().isEmpty();
+        SdkIterable<Page<CompanyJoinRequest>> pages =
+                index.query(r -> r.queryConditional(condition).limit(1));
+
+        for (Page<CompanyJoinRequest> page : pages) {
+            return page.items().stream()
+                    .anyMatch(r ->
+                            STATUS_PENDING.equals(r.getStatus())
+                    );
+        }
+
+        return false;
     }
 
     /* =========================
-       APPROVE (TRANSACTIONAL UPDATE ONLY)
+       APPROVE (TRANSACTIONAL)
     ========================== */
 
     public void approveJoinRequestTransactional(
-            CompanyJoinRequest request,
-            String approvedByUserId
-    ) {
+        CompanyJoinRequest request,
+        String approvedByUserId
+) {
 
-        Instant now = Instant.now();
+    Instant now = Instant.now();
 
-        request.setStatus(STATUS_APPROVED);
-        request.setReviewedBy(approvedByUserId);
-        request.setReviewedAt(now);
+    request.setStatus(STATUS_APPROVED);
+    request.setReviewedBy(approvedByUserId);
+    request.setReviewedAt(now);
+    request.setUpdatedAt(now);
 
-        DynamoDBUtils.transactWriteItems(
-                clientFactory.getEnhancedDynamoClient(),
-                tx -> tx.addUpdateItem(
-                        table(),
-                        TransactUpdateItemEnhancedRequest.builder(CompanyJoinRequest.class)
-                                .item(request)
-                                .conditionExpression(
-                                        Expression.builder()
-                                                .expression("status = :expected")
-                                                .expressionValues(
-                                                        Map.of(
-                                                                ":expected",
-                                                                AttributeValue.fromS(STATUS_PENDING)
-                                                        )
-                                                )
-                                                .build()
-                                )
-                                .build()
-                )
-        );
-    }
+    DynamoDBUtils.transactWriteItems(
+            clientFactory.getEnhancedDynamoClient(),
+            tx -> tx.addUpdateItem(
+                    table(),
+                    TransactUpdateItemEnhancedRequest
+                            .builder(CompanyJoinRequest.class)
+                            .item(request)
+                            .conditionExpression(
+                                    Expression.builder()
+                                            .expression("#status = :expected")
+                                            .expressionNames(
+                                                    Map.of(
+                                                            "#status", "status"
+                                                    )
+                                            )
+                                            .expressionValues(
+                                                    Map.of(
+                                                            ":expected",
+                                                            AttributeValue.fromS(STATUS_PENDING)
+                                                    )
+                                            )
+                                            .build()
+                            )
+                            .build()
+            )
+    );
+}
+
 
     /* =========================
        DELETE
@@ -173,3 +194,4 @@ public class CompanyJoinRequestRepository {
         );
     }
 }
+

@@ -6,11 +6,18 @@ import org.mapstruct.ReportingPolicy;
 
 @Mapper(
     componentModel = "cdi",
-    unmappedTargetPolicy = ReportingPolicy.ERROR
+    unmappedTargetPolicy = ReportingPolicy.IGNORE
 )
 public interface CompanyJoinRequestMapper {
 
-    @Mapping(target = "createdAt", ignore = true)
-    @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "companyId", source = "companyId")
+    @Mapping(target = "requestId", source = "requestId")
+    @Mapping(target = "userId", source = "userId")
+    @Mapping(target = "status", source = "status")
+    @Mapping(target = "requestedAt", source = "requestedAt")
+    @Mapping(target = "reviewedAt", source = "reviewedAt")
+    @Mapping(target = "reviewedBy", source = "reviewedBy")
+    @Mapping(target = "createdAt", source = "createdAt")
+    @Mapping(target = "updatedAt", source = "updatedAt")
     CompanyJoinRequestResponseDTO toResponseDTO(CompanyJoinRequest entity);
 }

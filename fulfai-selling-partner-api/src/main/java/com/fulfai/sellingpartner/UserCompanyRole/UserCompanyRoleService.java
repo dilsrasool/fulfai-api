@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 import com.fulfai.sellingpartner.company.Company;
@@ -28,7 +29,7 @@ public class UserCompanyRoleService {
     CognitoUserResolver cognitoUserResolver;
 
     /* ============================
-       ADD USER
+       ADD USER (OWNER / ADMIN)
     ============================= */
 
     public void addUserToCompany(UserCompanyRoleRequestDTO request) {
@@ -40,8 +41,26 @@ public class UserCompanyRoleService {
             );
         }
 
-        // 🔐 Resolve email → Cognito sub
+        // Resolve email → Cognito sub
         String userSub = cognitoUserResolver.getSubByEmail(request.getEmail());
+        if (userSub == null) {
+            throw new BadRequestException(
+                "User not found for email: " + request.getEmail()
+            );
+        }
+
+        // Prevent duplicate role
+        boolean exists = userCompanyRoleRepository.exists(
+            userSub,
+            request.getCompanyId(),
+            request.getBranchId()
+        );
+
+        if (exists) {
+            throw new BadRequestException(
+                "User already exists in company/branch"
+            );
+        }
 
         UserCompanyRole role = new UserCompanyRole();
         role.setUserId(userSub);
@@ -110,32 +129,52 @@ public class UserCompanyRoleService {
        REMOVE USER (EMAIL-BASED)
     ============================= */
 
-   public void removeUserFromCompanyByEmail(
+    public void removeUserFromCompanyByEmail(
         String companyId,
         String branchId,
         String email
-) {
-    Company company = companyRepository.getById(companyId);
-    if (company == null) {
-        throw new NotFoundException("Company not found: " + companyId);
-    }
+    ) {
 
-    String userSub = cognitoUserResolver.getSubByEmail(email);
+        Company company = companyRepository.getById(companyId);
+        if (company == null) {
+            throw new NotFoundException(
+                "Company not found: " + companyId
+            );
+        }
 
-    userCompanyRoleRepository.delete(
+        String userSub = cognitoUserResolver.getSubByEmail(email);
+        if (userSub == null) {
+            throw new BadRequestException(
+                "User not found for email: " + email
+            );
+        }
+
+        boolean exists = userCompanyRoleRepository.exists(
             userSub,
             companyId,
             branchId
-    );
+        );
 
-    Log.debugf(
-        "Removed user %s (%s) from company %s",
-        email,
-        userSub,
-        companyId
-    );
-}
+        if (!exists) {
+            throw new NotFoundException(
+                "User is not associated with this company/branch"
+            );
+        }
 
+        userCompanyRoleRepository.delete(
+            userSub,
+            companyId,
+            branchId
+        );
+
+        Log.debugf(
+            "Removed user %s (%s) from company %s (branch=%s)",
+            email,
+            userSub,
+            companyId,
+            branchId
+        );
+    }
 
     /* ============================
        PRIVATE HELPERS
@@ -143,38 +182,37 @@ public class UserCompanyRoleService {
 
     /**
      * Convert entity → safe response DTO
-     * (never expose internal userId)
+     * (never expose internal Cognito sub directly)
      */
-    private UserCompanyRoleResponseDTO toSafeResponse(UserCompanyRole role) {
+    private UserCompanyRoleResponseDTO toSafeResponse(
+        UserCompanyRole role
+    ) {
 
-        UserCompanyRoleResponseDTO dto = mapper.toResponseDTO(role);
+        UserCompanyRoleResponseDTO dto =
+            mapper.toResponseDTO(role);
 
-        // Safe UI display name
         dto.setDisplayName(resolveDisplayName(role.getUserId()));
-
         return dto;
     }
 
     /**
-     * Display name resolver (safe fallback)
-     * Replace later with Cognito Admin lookup
+     * Display name resolver
+     * (email if available, masked Cognito sub otherwise)
      */
     private String resolveDisplayName(String userId) {
 
-        if (userId == null) {
+        if (userId == null || userId.isBlank()) {
             return "User";
         }
 
-        // If email-like (dev / fallback)
+        // Dev / fallback case
         if (userId.contains("@")) {
             return userId;
         }
 
-        // Masked Cognito sub
-        if (userId.length() > 6) {
-            return "User-" + userId.substring(0, 6);
-        }
-
-        return "User";
+        // Mask Cognito sub
+        return userId.length() > 6
+                ? "User-" + userId.substring(0, 6)
+                : "User";
     }
 }

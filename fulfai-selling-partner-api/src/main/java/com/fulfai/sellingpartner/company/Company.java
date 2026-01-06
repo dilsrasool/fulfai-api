@@ -12,7 +12,20 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.*;
 @RegisterForReflection
 public class Company {
 
+    /* =====================
+       PRIMARY KEY
+    ===================== */
     private String id;
+
+    /* =====================
+       GSIs
+    ===================== */
+    private String ownerSub;   // Owner Cognito sub
+    private String joinCode;   // 🔑 Company join GUID
+
+    /* =====================
+       COMPANY DETAILS
+    ===================== */
     private String name;
     private String address;
     private String city;
@@ -24,9 +37,21 @@ public class Company {
     private String trn;
     private String website;
     private List<String> operatingCountries;
+    private String state;
+    private String description;
+
+
+
+
+    /* =====================
+       AUDIT
+    ===================== */
     private Instant createdAt;
     private Instant updatedAt;
-    private String ownerSub;
+
+    /* =====================
+       KEY ANNOTATIONS
+    ===================== */
 
     // 🔑 Primary Key
     @DynamoDbPartitionKey
@@ -35,12 +60,23 @@ public class Company {
         return id;
     }
 
-    // ✅ GSI Partition Key
+    // 🔍 GSI: ownerSub-index
     @DynamoDbSecondaryPartitionKey(indexNames = "ownerSub-index")
     @DynamoDbAttribute("ownerSub")
     public String getOwnerSub() {
         return ownerSub;
     }
+
+    // 🔍 GSI: joinCode-index
+    @DynamoDbSecondaryPartitionKey(indexNames = "joinCode-index")
+    @DynamoDbAttribute("joinCode")
+    public String getJoinCode() {
+        return joinCode;
+    }
+
+    /* =====================
+       ATTRIBUTES
+    ===================== */
 
     @DynamoDbAttribute("name")
     public String getName() {
@@ -106,4 +142,19 @@ public class Company {
     public Instant getUpdatedAt() {
         return updatedAt;
     }
+
+
+
+    @DynamoDbAttribute("state")
+    public String getState() {
+        return state;
+    }
+
+    @DynamoDbAttribute("description")
+    public String getDescription() {
+        return description;
+    }
+
+
+
 }

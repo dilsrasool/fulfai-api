@@ -19,56 +19,109 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.StaticAttributeTags;
 
 public class Schemas {
 
-        public static final TableSchema<Company> COMPANY_SCHEMA = TableSchema.builder(Company.class)
-                         .newItemSupplier(Company::new) 
-                         .addAttribute(String.class, a -> a.name("id") 
-                                                .getter(Company::getId) 
-                                                .setter(Company::setId) 
-                                                .tags(StaticAttributeTags.primaryPartitionKey())) 
-                         .addAttribute(String.class, a -> a.name("ownerSub") 
-                                                .getter(Company::getOwnerSub) 
-                                                .setter(Company::setOwnerSub) 
-                                                .tags(StaticAttributeTags.secondaryPartitionKey("ownerSub-index")))
-                         .addAttribute(String.class, a -> a.name("name") 
-                                                .getter(Company::getName) 
-                                                .setter(Company::setName)) 
-                         .addAttribute(String.class, a -> a.name("address") 
-                                                .getter(Company::getAddress) 
-                                                .setter(Company::setAddress)) 
-                         .addAttribute(String.class, a -> a.name("city") 
-                                                .getter(Company::getCity) 
-                                                .setter(Company::setCity)) 
-                         .addAttribute(String.class, a -> a.name("country") 
-                                                .getter(Company::getCountry) 
-                                                .setter(Company::setCountry)) 
-                         .addAttribute(String.class, a -> a.name("email") 
-                                                .getter(Company::getEmail) 
-                                                .setter(Company::setEmail)) 
-                         .addAttribute(String.class, a -> a.name("licenseNo") 
-                                                .getter(Company::getLicenseNo) 
-                                                .setter(Company::setLicenseNo)) 
-                         .addAttribute(String.class, a -> a.name("logo") 
-                                                .getter(Company::getLogo) 
-                                                .setter(Company::setLogo)) 
-                         .addAttribute(String.class, a -> a.name("phoneNumber") 
-                                                .getter(Company::getPhoneNumber) 
-                                                .setter(Company::setPhoneNumber)) 
-                         .addAttribute(String.class, a -> a.name("trn") 
-                                                .getter(Company::getTrn) 
-                                                .setter(Company::setTrn)) 
-                         .addAttribute(String.class, a -> a.name("website") 
-                                                .getter(Company::getWebsite) 
-                                                .setter(Company::setWebsite)) 
-                         .addAttribute(EnhancedType.listOf(String.class), a -> a.name("operatingCountries") 
-                                                .getter(Company::getOperatingCountries) 
-                                                .setter(Company::setOperatingCountries)) 
-                         .addAttribute(Instant.class, a -> a.name("createdAt") 
-                                                .getter(Company::getCreatedAt) 
-                                                .setter(Company::setCreatedAt)) 
-                         .addAttribute(Instant.class, a -> a.name("updatedAt") 
-                                                .getter(Company::getUpdatedAt) 
-                                                .setter(Company::setUpdatedAt)) 
-                         .build();
+       public static final TableSchema<Company> COMPANY_SCHEMA =
+        TableSchema.builder(Company.class)
+            .newItemSupplier(Company::new)
+
+            /* =====================
+               PRIMARY KEY
+            ===================== */
+            .addAttribute(String.class, a -> a.name("id")
+                .getter(Company::getId)
+                .setter(Company::setId)
+                .tags(StaticAttributeTags.primaryPartitionKey())
+            )
+
+            /* =====================
+               GSIs
+            ===================== */
+
+            // 🔹 Owner lookup
+            .addAttribute(String.class, a -> a.name("ownerSub")
+                .getter(Company::getOwnerSub)
+                .setter(Company::setOwnerSub)
+                .tags(StaticAttributeTags.secondaryPartitionKey("ownerSub-index"))
+            )
+
+            // 🔹 Join Code (GUID) lookup
+            .addAttribute(String.class, a -> a.name("joinCode")
+                .getter(Company::getJoinCode)
+                .setter(Company::setJoinCode)
+                .tags(StaticAttributeTags.secondaryPartitionKey("joinCode-index"))
+            )
+
+            /* =====================
+               COMPANY DETAILS
+            ===================== */
+            .addAttribute(String.class, a -> a.name("name")
+                .getter(Company::getName)
+                .setter(Company::setName)
+            )
+            .addAttribute(String.class, a -> a.name("address")
+                .getter(Company::getAddress)
+                .setter(Company::setAddress)
+            )
+            .addAttribute(String.class, a -> a.name("city")
+                .getter(Company::getCity)
+                .setter(Company::setCity)
+            )
+            .addAttribute(String.class, a -> a.name("country")
+                .getter(Company::getCountry)
+                .setter(Company::setCountry)
+            )
+            .addAttribute(String.class, a -> a.name("email")
+                .getter(Company::getEmail)
+                .setter(Company::setEmail)
+            )
+            .addAttribute(String.class, a -> a.name("licenseNo")
+                .getter(Company::getLicenseNo)
+                .setter(Company::setLicenseNo)
+            )
+            .addAttribute(String.class, a -> a.name("logo")
+                .getter(Company::getLogo)
+                .setter(Company::setLogo)
+            )
+            .addAttribute(String.class, a -> a.name("phoneNumber")
+                .getter(Company::getPhoneNumber)
+                .setter(Company::setPhoneNumber)
+            )
+            .addAttribute(String.class, a -> a.name("trn")
+                .getter(Company::getTrn)
+                .setter(Company::setTrn)
+            )
+            .addAttribute(String.class, a -> a.name("website")
+                .getter(Company::getWebsite)
+                .setter(Company::setWebsite)
+            )
+            .addAttribute(String.class, a -> a.name("state")
+                .getter(Company::getState)
+                .setter(Company::setState)
+            )
+              .addAttribute(String.class, a -> a.name("description")
+                .getter(Company::getDescription)
+                .setter(Company::setDescription)
+            )
+            .addAttribute(
+                EnhancedType.listOf(String.class),
+                a -> a.name("operatingCountries")
+                    .getter(Company::getOperatingCountries)
+                    .setter(Company::setOperatingCountries)
+            )
+
+            /* =====================
+               AUDIT FIELDS
+            ===================== */
+            .addAttribute(Instant.class, a -> a.name("createdAt")
+                .getter(Company::getCreatedAt)
+                .setter(Company::setCreatedAt)
+            )
+            .addAttribute(Instant.class, a -> a.name("updatedAt")
+                .getter(Company::getUpdatedAt)
+                .setter(Company::setUpdatedAt)
+            )
+
+            .build();
+
 
 
         public static final TableSchema<Branch> BRANCH_SCHEMA = TableSchema.builder(Branch.class)
@@ -372,48 +425,63 @@ public static final TableSchema<UserCompanyRole> USER_COMPANY_ROLE_SCHEMA =
 
         .build();
 
-
-    public static final TableSchema<CompanyJoinRequest> COMPANY_JOIN_REQUEST_SCHEMA =
+public static final TableSchema<CompanyJoinRequest> COMPANY_JOIN_REQUEST_SCHEMA =
         TableSchema.builder(CompanyJoinRequest.class)
                 .newItemSupplier(CompanyJoinRequest::new)
 
                 /* =========================
-                   PRIMARY KEY
+                   PRIMARY + GSI PARTITION KEYS
                 ========================== */
 
                 .addAttribute(String.class, a -> a.name("companyId")
                         .getter(CompanyJoinRequest::getCompanyId)
                         .setter(CompanyJoinRequest::setCompanyId)
-                        .tags(StaticAttributeTags.primaryPartitionKey()))
+                        .tags(
+                                StaticAttributeTags.primaryPartitionKey(),
+                                StaticAttributeTags.secondaryPartitionKey("company-status-index")
+                        ))
 
                 .addAttribute(String.class, a -> a.name("requestId")
                         .getter(CompanyJoinRequest::getRequestId)
                         .setter(CompanyJoinRequest::setRequestId)
                         .tags(StaticAttributeTags.primarySortKey()))
 
-                /* =========================
-                   CORE FIELDS
-                ========================== */
-
                 .addAttribute(String.class, a -> a.name("userId")
                         .getter(CompanyJoinRequest::getUserId)
-                        .setter(CompanyJoinRequest::setUserId))
+                        .setter(CompanyJoinRequest::setUserId)
+                        .tags(
+                                StaticAttributeTags.secondaryPartitionKey("user-company-index")
+                        ))
+
+                /* =========================
+                   SORT KEYS
+                ========================== */
+
+                .addAttribute(String.class, a -> a.name("companyStatus")
+                        .getter(CompanyJoinRequest::getCompanyStatus)
+                        .setter(CompanyJoinRequest::setCompanyStatus)
+                        .tags(
+                                StaticAttributeTags.secondarySortKey("company-status-index")
+                        ))
+
+                .addAttribute(String.class, a -> a.name("userCompany")
+                        .getter(CompanyJoinRequest::getUserCompany)
+                        .setter(CompanyJoinRequest::setUserCompany)
+                        .tags(
+                                StaticAttributeTags.secondarySortKey("user-company-index")
+                        ))
+
+                /* =========================
+                   OTHER FIELDS
+                ========================== */
 
                 .addAttribute(String.class, a -> a.name("status")
                         .getter(CompanyJoinRequest::getStatus)
                         .setter(CompanyJoinRequest::setStatus))
 
-                .addAttribute(String.class, a -> a.name("joinCode")
-                        .getter(CompanyJoinRequest::getJoinCode)
-                        .setter(CompanyJoinRequest::setJoinCode))
-
                 .addAttribute(String.class, a -> a.name("message")
                         .getter(CompanyJoinRequest::getMessage)
                         .setter(CompanyJoinRequest::setMessage))
-
-                /* =========================
-                   AUDIT FIELDS
-                ========================== */
 
                 .addAttribute(Instant.class, a -> a.name("requestedAt")
                         .getter(CompanyJoinRequest::getRequestedAt)
@@ -427,41 +495,17 @@ public static final TableSchema<UserCompanyRole> USER_COMPANY_ROLE_SCHEMA =
                         .getter(CompanyJoinRequest::getReviewedBy)
                         .setter(CompanyJoinRequest::setReviewedBy))
 
-                /* =========================
-                   GSI #1
-                   List requests by company + status
-                ========================== */
+                .addAttribute(Instant.class, a -> a.name("createdAt")
+                        .getter(CompanyJoinRequest::getCreatedAt)
+                        .setter(CompanyJoinRequest::setCreatedAt))
 
-                .addAttribute(String.class, a -> a.name("GSI1PK")
-                        .getter(CompanyJoinRequest::getGsi1Pk)
-                        .setter(CompanyJoinRequest::setGsi1Pk)
-                        .tags(StaticAttributeTags.secondaryPartitionKey("company-status-index")))
-
-                .addAttribute(String.class, a -> a.name("GSI1SK")
-                        .getter(CompanyJoinRequest::getGsi1Sk)
-                        .setter(CompanyJoinRequest::setGsi1Sk)
-                        .tags(StaticAttributeTags.secondarySortKey("company-status-index")))
-
-                /* =========================
-                   GSI #2
-                   Prevent duplicate requests
-                ========================== */
-
-                .addAttribute(String.class, a -> a.name("GSI2PK")
-                        .getter(CompanyJoinRequest::getGsi2Pk)
-                        .setter(CompanyJoinRequest::setGsi2Pk)
-                        .tags(StaticAttributeTags.secondaryPartitionKey("user-company-index")))
-
-                .addAttribute(String.class, a -> a.name("GSI2SK")
-                        .getter(CompanyJoinRequest::getGsi2Sk)
-                        .setter(CompanyJoinRequest::setGsi2Sk)
-                        .tags(StaticAttributeTags.secondarySortKey("user-company-index")))
+                .addAttribute(Instant.class, a -> a.name("updatedAt")
+                        .getter(CompanyJoinRequest::getUpdatedAt)
+                        .setter(CompanyJoinRequest::setUpdatedAt))
 
                 .build();
 
 
-
-  
 
 
 

@@ -9,11 +9,14 @@ import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRole;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRoleRepository;
 import com.fulfai.sellingpartner.email.InviteEmailSender;
+import com.fulfai.sellingpartner.security.ApprovalTokenUtil;
 
 import io.quarkus.logging.Log;
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
+import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.NotFoundException;
 
 @ApplicationScoped
@@ -35,8 +38,11 @@ public class CompanyJoinRequestService {
     @Inject
     InviteEmailSender inviteEmailSender;
 
+    @Inject
+    SecurityIdentity securityIdentity;
+
     /* =========================
-       LIST JOIN REQUESTS
+       LIST JOIN REQUESTS (OWNER)
     ========================== */
 
     public PaginatedResponse<CompanyJoinRequestResponseDTO> listJoinRequests(
@@ -45,6 +51,8 @@ public class CompanyJoinRequestService {
             String nextToken,
             Integer limit
     ) {
+
+        assertCurrentUserIsOwner(companyId);
 
         PaginatedResponse<CompanyJoinRequest> response =
                 repository.listByCompanyAndStatus(
@@ -56,7 +64,8 @@ public class CompanyJoinRequestService {
 
         return PaginatedResponse.<CompanyJoinRequestResponseDTO>builder()
                 .items(
-                        response.getItems().stream()
+                        response.getItems()
+                                .stream()
                                 .map(mapper::toResponseDTO)
                                 .collect(Collectors.toList())
                 )
@@ -67,17 +76,17 @@ public class CompanyJoinRequestService {
 
     /* =========================
        CREATE JOIN REQUEST
+       (AUTH USER)
     ========================== */
 
     public CompanyJoinRequestResponseDTO createJoinRequest(
             String companyId,
-            CompanyJoinRequestCreateDTO request
+            CompanyJoinRequestCreateDTO ignored
     ) {
 
-        if (repository.existsPendingRequest(
-                request.getUserId(),
-                companyId
-        )) {
+        String userId = securityIdentity.getPrincipal().getName();
+
+        if (repository.existsPendingRequest(userId, companyId)) {
             throw new BadRequestException(
                     "A pending join request already exists"
             );
@@ -88,36 +97,85 @@ public class CompanyJoinRequestService {
         CompanyJoinRequest joinRequest = new CompanyJoinRequest();
         joinRequest.setRequestId(UUID.randomUUID().toString());
         joinRequest.setCompanyId(companyId);
-        joinRequest.setUserId(request.getUserId());
+        joinRequest.setUserId(userId);
         joinRequest.setStatus(STATUS_PENDING);
 
         joinRequest.setRequestedAt(now);
         joinRequest.setCreatedAt(now);
         joinRequest.setUpdatedAt(now);
 
-        // ---- GSI population (CRITICAL) ----
-        joinRequest.setGsi1Pk(companyId);
-        joinRequest.setGsi1Sk(STATUS_PENDING + "#" + now.toEpochMilli());
+        /* =========================
+           GSI VALUES (CRITICAL)
+        ========================== */
 
-        joinRequest.setGsi2Pk(request.getUserId());
-        joinRequest.setGsi2Sk(companyId);
+        // user-company-index
+        joinRequest.setUserCompany(companyId);
+
+        // company-status-index
+        joinRequest.setCompanyStatus(
+                STATUS_PENDING + "#" + now.toEpochMilli()
+        );
 
         repository.save(joinRequest);
 
-        notifyCompanyOwners(joinRequest);
+        /* ---- Generate approval token ---- */
+        String approvalToken =
+                ApprovalTokenUtil.generateToken(
+                        companyId,
+                        joinRequest.getRequestId()
+                );
+        Log.debug("Notifying Comoany Owner About New Join Request");
+
+        notifyCompanyOwners(joinRequest, approvalToken);
 
         return mapper.toResponseDTO(joinRequest);
     }
 
     /* =========================
        APPROVE JOIN REQUEST
-       (TRANSACTIONAL)
+       (OWNER via UI)
     ========================== */
 
     public void approveJoinRequest(
             String companyId,
+            String requestId
+    ) {
+
+        assertCurrentUserIsOwner(companyId);
+
+        approveJoinRequestInternal(
+                companyId,
+                requestId,
+                securityIdentity.getPrincipal().getName()
+        );
+    }
+
+    /* =========================
+       APPROVE JOIN REQUEST
+       (EMAIL TOKEN)
+    ========================== */
+
+    public void approveJoinRequestByToken(
+            String companyId,
+            String requestId
+    ) {
+
+        approveJoinRequestInternal(
+                companyId,
+                requestId,
+                "EMAIL_APPROVAL"
+        );
+    }
+
+    /* =========================
+       INTERNAL APPROVAL LOGIC
+       (IDEMPOTENT)
+    ========================== */
+
+    private void approveJoinRequestInternal(
+            String companyId,
             String requestId,
-            String approvedByUserId
+            String approvedBy
     ) {
 
         CompanyJoinRequest request =
@@ -125,6 +183,15 @@ public class CompanyJoinRequestService {
 
         if (request == null) {
             throw new NotFoundException("Join request not found");
+        }
+
+        if (STATUS_APPROVED.equals(request.getStatus())) {
+            Log.infof(
+                    "Join request already approved → company=%s request=%s",
+                    companyId,
+                    requestId
+            );
+            return;
         }
 
         if (!STATUS_PENDING.equals(request.getStatus())) {
@@ -133,27 +200,73 @@ public class CompanyJoinRequestService {
             );
         }
 
+        /* ---- Update join request ---- */
         repository.approveJoinRequestTransactional(
                 request,
-                approvedByUserId
+                approvedBy
         );
 
+        /* ---- Create user role ---- */
+        UserCompanyRole role = new UserCompanyRole();
+        role.setUserId(request.getUserId());
+        role.setCompanyAndBranch(companyId, null);
+        role.setRole("STAFF");
+
+        userCompanyRoleRepository.save(role);
+
         Log.infof(
-                "Join request approved → company=%s user=%s by=%s",
+                "Join request APPROVED → company=%s user=%s by=%s",
                 companyId,
                 request.getUserId(),
-                approvedByUserId
+                approvedBy
         );
     }
 
     /* =========================
        REJECT JOIN REQUEST
+       (OWNER)
     ========================== */
 
     public void rejectJoinRequest(
             String companyId,
+            String requestId
+    ) {
+
+        assertCurrentUserIsOwner(companyId);
+
+        rejectJoinRequestInternal(
+                companyId,
+                requestId,
+                securityIdentity.getPrincipal().getName()
+        );
+    }
+
+    /* =========================
+       REJECT JOIN REQUEST
+       (EMAIL TOKEN)
+    ========================== */
+
+    public void rejectJoinRequestByToken(
+            String companyId,
+            String requestId
+    ) {
+
+        rejectJoinRequestInternal(
+                companyId,
+                requestId,
+                "EMAIL_REJECT"
+        );
+    }
+
+    /* =========================
+       INTERNAL REJECTION LOGIC
+       (IDEMPOTENT)
+    ========================== */
+
+    private void rejectJoinRequestInternal(
+            String companyId,
             String requestId,
-            String rejectedByUserId
+            String rejectedBy
     ) {
 
         CompanyJoinRequest request =
@@ -164,36 +277,68 @@ public class CompanyJoinRequestService {
         }
 
         if (!STATUS_PENDING.equals(request.getStatus())) {
-            throw new BadRequestException(
-                    "Only PENDING requests can be rejected"
+            Log.infof(
+                    "Reject ignored (already %s) → company=%s request=%s",
+                    request.getStatus(),
+                    companyId,
+                    requestId
             );
+            return;
         }
 
         Instant now = Instant.now();
 
         request.setStatus(STATUS_REJECTED);
-        request.setReviewedBy(rejectedByUserId);
+        request.setReviewedBy(rejectedBy);
         request.setReviewedAt(now);
         request.setUpdatedAt(now);
 
-        // update GSI
-        request.setGsi1Sk(STATUS_REJECTED + "#" + request.getRequestedAt().toEpochMilli());
+        request.setCompanyStatus(
+                STATUS_REJECTED + "#" + request.getRequestedAt().toEpochMilli()
+        );
 
         repository.save(request);
 
         Log.infof(
-                "Join request rejected → company=%s user=%s by=%s",
+                "Join request REJECTED → company=%s request=%s by=%s",
                 companyId,
-                request.getUserId(),
-                rejectedByUserId
+                requestId,
+                rejectedBy
         );
     }
 
     /* =========================
-       OWNER EMAIL NOTIFICATION
+       OWNER GUARD
     ========================== */
 
-    private void notifyCompanyOwners(CompanyJoinRequest request) {
+    private void assertCurrentUserIsOwner(String companyId) {
+
+        String currentUserId =
+                securityIdentity.getPrincipal().getName();
+
+        boolean isOwner =
+                userCompanyRoleRepository
+                        .getCompanyOwners(companyId)
+                        .stream()
+                        .anyMatch(r ->
+                                r.getUserId().equals(currentUserId)
+                        );
+
+        if (!isOwner) {
+            throw new ForbiddenException(
+                    "Only company owners can approve or reject join requests"
+            );
+        }
+    }
+
+    /* =========================
+       EMAIL NOTIFICATION
+    ========================== */
+
+    private void notifyCompanyOwners(
+            CompanyJoinRequest request,
+            String approvalToken
+    ) {
 
         List<UserCompanyRole> owners =
                 userCompanyRoleRepository.getCompanyOwners(
@@ -202,7 +347,7 @@ public class CompanyJoinRequestService {
 
         if (owners == null || owners.isEmpty()) {
             Log.warnf(
-                    "No OWNER found for company=%s. Join request pending without notification.",
+                    "No OWNER found for company=%s",
                     request.getCompanyId()
             );
             return;
@@ -213,7 +358,7 @@ public class CompanyJoinRequestService {
                     owner.getUserId(),
                     request.getCompanyId(),
                     request.getRequestId(),
-                    request.getUserId()
+                    approvalToken
             );
         }
 
@@ -222,25 +367,5 @@ public class CompanyJoinRequestService {
                 owners.size(),
                 request.getCompanyId()
         );
-    }
-
-    /* =========================
-       RESOURCE DELEGATORS
-    ========================== */
-
-    public void approveJoinRequest(
-            String companyId,
-            String requestId
-    ) {
-        // TODO: Replace with authenticated user (JWT / Cognito)
-        approveJoinRequest(companyId, requestId, "SYSTEM");
-    }
-
-    public void rejectJoinRequest(
-            String companyId,
-            String requestId
-    ) {
-        // TODO: Replace with authenticated user (JWT / Cognito)
-        rejectJoinRequest(companyId, requestId, "SYSTEM");
     }
 }

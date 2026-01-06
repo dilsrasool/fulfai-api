@@ -37,56 +37,83 @@ public class CompanyService {
 
     public CompanyResponseDTO createCompany(@Valid CompanyRequestDTO companyDTO) {
 
-        Company company = companyMapper.toEntity(companyDTO);
+    Company company = companyMapper.toEntity(companyDTO);
 
-        Instant now = Instant.now();
-        company.setId(UUID.randomUUID().toString());
-        company.setCreatedAt(now);
-        company.setUpdatedAt(now);
+    Instant now = Instant.now();
 
-        String sub = securityIdentity.getPrincipal().getName();
-        company.setOwnerSub(sub);
+    // ✅ Company GUID (primary identifier)
+    String companyId = UUID.randomUUID().toString();
 
-        companyRepository.save(company);
-        Log.debugf("Created company %s by user %s", company.getId(), sub);
+    company.setId(companyId);
+    company.setJoinCode(companyId); // 🔑 JOIN CODE = COMPANY GUID
+    company.setCreatedAt(now);
+    company.setUpdatedAt(now);
 
-        // ✅ Assign OWNER role at company level
-        UserCompanyRole role = new UserCompanyRole();
-        role.setUserId(sub);
-        role.setCompanyAndBranch(company.getId(), null);
-        role.setRole("OWNER");
+    String ownerSub = securityIdentity.getPrincipal().getName();
+    company.setOwnerSub(ownerSub);
 
-        userCompanyRoleRepository.save(role);
+    // ✅ Explicitly preserve mapped optional fields (safe)
+    company.setPhoneNumber(company.getPhoneNumber());
+    company.setWebsite(company.getWebsite());
+    company.setState(company.getState());
 
-        return enrichWithUsers(companyMapper.toResponseDTO(company));
-    }
+    companyRepository.save(company);
+
+    Log.infof(
+        "Created company %s (joinCode=%s) by user %s",
+        companyId,
+        company.getJoinCode(),
+        ownerSub
+    );
+
+    // ✅ Assign OWNER role
+    UserCompanyRole role = new UserCompanyRole();
+    role.setUserId(ownerSub);
+    role.setCompanyAndBranch(companyId, null);
+    role.setRole("OWNER");
+
+    userCompanyRoleRepository.save(role);
+
+    return enrichWithUsers(toResponse(company));
+}
+
 
     /* ============================
        GET COMPANY
     ============================ */
 
     public CompanyResponseDTO getCompanyById(String id) {
+
         Company company = companyRepository.getById(id);
         if (company == null) {
             throw new NotFoundException("Company not found with id: " + id);
         }
-        return enrichWithUsers(companyMapper.toResponseDTO(company));
+
+        return enrichWithUsers(toResponse(company));
     }
 
+    /**
+     * Returns null if user owns no company
+     */
     public CompanyResponseDTO getCompanyForCurrentUser() {
+
         String sub = securityIdentity.getPrincipal().getName();
         Company company = companyRepository.getByOwnerSub(sub);
+
         if (company == null) {
-            throw new NotFoundException("Company not found for current user");
+            return null;
         }
-        return enrichWithUsers(companyMapper.toResponseDTO(company));
+
+        return enrichWithUsers(toResponse(company));
     }
 
     public List<CompanyResponseDTO> getAllCompaniesForCurrentUser() {
+
         String sub = securityIdentity.getPrincipal().getName();
+
         return companyRepository.getAllByOwnerSub(sub)
                 .stream()
-                .map(companyMapper::toResponseDTO)
+                .map(this::toResponse)
                 .map(this::enrichWithUsers)
                 .collect(Collectors.toList());
     }
@@ -96,26 +123,35 @@ public class CompanyService {
     ============================ */
 
     public CompanyResponseDTO updateCompanyById(
-            String id,
-            @Valid CompanyRequestDTO companyDTO
-    ) {
-
-        Company existing = companyRepository.getById(id);
-        if (existing == null) {
-            throw new NotFoundException("Company not found with id: " + id);
-        }
-
-        Company updated = companyMapper.toEntity(companyDTO);
-        updated.setId(id);
-        updated.setOwnerSub(existing.getOwnerSub());
-        updated.setCreatedAt(existing.getCreatedAt());
-        updated.setUpdatedAt(Instant.now());
-
-        companyRepository.save(updated);
-        Log.debugf("Updated company %s", id);
-
-        return enrichWithUsers(companyMapper.toResponseDTO(updated));
+        String id,
+        @Valid CompanyRequestDTO dto
+) {
+    Company existing = companyRepository.getById(id);
+    if (existing == null) {
+        throw new NotFoundException("Company not found with id: " + id);
     }
+
+    existing.setName(dto.getName());
+    existing.setAddress(dto.getAddress());
+    existing.setCity(dto.getCity());
+    existing.setState(dto.getState());
+    existing.setCountry(dto.getCountry());
+    existing.setEmail(dto.getEmail());
+    existing.setPhoneNumber(dto.getPhoneNumber());
+    existing.setLicenseNo(dto.getLicenseNo());
+    existing.setTrn(dto.getTrn());
+    existing.setWebsite(dto.getWebsite());
+    existing.setLogo(dto.getLogo());
+    existing.setDescription(dto.getDescription());
+    existing.setOperatingCountries(dto.getOperatingCountries());
+
+    existing.setUpdatedAt(Instant.now());
+
+    companyRepository.save(existing);
+
+    return enrichWithUsers(toResponse(existing));
+}
+
 
     /* ============================
        DELETE COMPANY
@@ -128,7 +164,7 @@ public class CompanyService {
             throw new NotFoundException("Company not found with id: " + id);
         }
 
-        // ✅ Cleanup roles
+        // Cleanup roles
         userCompanyRoleRepository.getByCompanyId(id)
                 .forEach(role ->
                         userCompanyRoleRepository.delete(
@@ -139,12 +175,22 @@ public class CompanyService {
                 );
 
         companyRepository.delete(id);
-        Log.debugf("Deleted company %s and cleaned up roles", id);
+        Log.warnf("Deleted company %s and cleaned up roles", id);
     }
 
     /* ============================
-       ENRICH USERS (SAFE DTO)
+       DTO HELPERS
     ============================ */
+
+    private CompanyResponseDTO toResponse(Company company) {
+        CompanyResponseDTO dto = companyMapper.toResponseDTO(company);
+
+        // ✅ Explicit frontend aliases
+        dto.setCompanyGuid(company.getId());
+        dto.setJoinCode(company.getJoinCode());
+
+        return dto;
+    }
 
     private CompanyResponseDTO enrichWithUsers(CompanyResponseDTO dto) {
 
@@ -152,15 +198,13 @@ public class CompanyService {
                 userCompanyRoleRepository.getByCompanyId(dto.getId())
                         .stream()
                         .map(role -> {
-                            UserCompanyRoleResponseDTO r = new UserCompanyRoleResponseDTO();
+                            UserCompanyRoleResponseDTO r =
+                                    new UserCompanyRoleResponseDTO();
                             r.setUserId(role.getUserId());
                             r.setCompanyId(role.getCompanyId());
                             r.setBranchId(role.getBranchId());
                             r.setRole(role.getRole());
-
-                            // ✅ Safe display name (no raw IDs)
                             r.setDisplayName(resolveDisplayName(role.getUserId()));
-
                             return r;
                         })
                         .collect(Collectors.toList());
@@ -170,7 +214,7 @@ public class CompanyService {
     }
 
     /* ============================
-       DISPLAY NAME RESOLVER
+       DISPLAY NAME (SAFE)
     ============================ */
 
     private String resolveDisplayName(String userId) {

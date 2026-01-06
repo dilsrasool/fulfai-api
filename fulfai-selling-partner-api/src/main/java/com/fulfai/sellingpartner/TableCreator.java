@@ -31,38 +31,90 @@ public class TableCreator {
        COMPANY
     ========================== */
 
-    public static void createCompanyTable(DynamoDbClient dynamoDbClient, String tableName) {
-        if (tableExists(dynamoDbClient, tableName)) return;
+    public static void createCompanyTable(
+        DynamoDbClient dynamoDbClient,
+        String tableName
+) {
+    if (tableExists(dynamoDbClient, tableName)) {
+        return;
+    }
 
-        dynamoDbClient.createTable(builder -> builder
-            .tableName(tableName)
-            .keySchema(KeySchemaElement.builder()
+    dynamoDbClient.createTable(builder -> builder
+        .tableName(tableName)
+
+        /* =====================
+           PRIMARY KEY
+        ===================== */
+        .keySchema(
+            KeySchemaElement.builder()
                 .attributeName("id")
                 .keyType(KeyType.HASH)
-                .build())
-            .attributeDefinitions(
-                AttributeDefinition.builder()
-                    .attributeName("id")
-                    .attributeType(ScalarAttributeType.S)
-                    .build(),
-                AttributeDefinition.builder()
-                    .attributeName("ownerSub")
-                    .attributeType(ScalarAttributeType.S)
-                    .build())
-            .globalSecondaryIndexes(
-                GlobalSecondaryIndex.builder()
-                    .indexName("ownerSub-index")
-                    .keySchema(KeySchemaElement.builder()
+                .build()
+        )
+
+        /* =====================
+           ATTRIBUTES
+        ===================== */
+        .attributeDefinitions(
+            AttributeDefinition.builder()
+                .attributeName("id")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+
+            AttributeDefinition.builder()
+                .attributeName("ownerSub")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+
+            AttributeDefinition.builder()
+                .attributeName("joinCode")
+                .attributeType(ScalarAttributeType.S)
+                .build()
+        )
+
+        /* =====================
+           GSIs
+        ===================== */
+        .globalSecondaryIndexes(
+
+            /* 🔹 Find company by owner */
+            GlobalSecondaryIndex.builder()
+                .indexName("ownerSub-index")
+                .keySchema(
+                    KeySchemaElement.builder()
                         .attributeName("ownerSub")
                         .keyType(KeyType.HASH)
-                        .build())
-                    .projection(Projection.builder()
-                        .projectionType(ProjectionType.ALL)
-                        .build())
-                    .build())
-            .billingMode(BillingMode.PAY_PER_REQUEST)
-        );
-    }
+                        .build()
+                )
+                .projection(Projection.builder()
+                    .projectionType(ProjectionType.ALL)
+                    .build()
+                )
+                .build(),
+
+            /* 🔹 Find company by JOIN CODE (GUID) */
+            GlobalSecondaryIndex.builder()
+                .indexName("joinCode-index")
+                .keySchema(
+                    KeySchemaElement.builder()
+                        .attributeName("joinCode")
+                        .keyType(KeyType.HASH)
+                        .build()
+                )
+                .projection(Projection.builder()
+                    .projectionType(ProjectionType.ALL)
+                    .build()
+                )
+                .build()
+        )
+
+        /* =====================
+           BILLING
+        ===================== */
+        .billingMode(BillingMode.PAY_PER_REQUEST)
+    );
+}
+
 
     /* =========================
        BRANCH

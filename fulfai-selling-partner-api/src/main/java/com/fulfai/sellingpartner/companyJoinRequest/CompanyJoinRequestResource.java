@@ -2,8 +2,12 @@ package com.fulfai.sellingpartner.companyJoinRequest;
 
 import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.common.dto.PaginationDTO;
+import com.fulfai.sellingpartner.security.ApprovalTokenUtil;
 
+import io.quarkus.security.Authenticated;
+import jakarta.annotation.security.PermitAll;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
@@ -16,6 +20,7 @@ import jakarta.ws.rs.core.Response;
 @Path("/company/{companyId}/join-requests")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@Authenticated // default: all endpoints require auth unless overridden
 public class CompanyJoinRequestResource {
 
     private static final int DEFAULT_LIMIT = 20;
@@ -25,7 +30,7 @@ public class CompanyJoinRequestResource {
 
     /* =========================
        LIST JOIN REQUESTS
-       (Admin view)
+       (OWNER VIEW)
     ========================== */
 
     @POST
@@ -33,16 +38,16 @@ public class CompanyJoinRequestResource {
     public Response listJoinRequests(
             @PathParam("companyId") String companyId,
             @QueryParam("status") String status,
-            PaginationDTO request
+            PaginationDTO pagination
     ) {
 
         Integer limit =
-                request != null && request.getLimit() != null
-                        ? request.getLimit()
+                pagination != null && pagination.getLimit() != null
+                        ? pagination.getLimit()
                         : DEFAULT_LIMIT;
 
         String nextToken =
-                request != null ? request.getNextToken() : null;
+                pagination != null ? pagination.getNextToken() : null;
 
         PaginatedResponse<CompanyJoinRequestResponseDTO> response =
                 companyJoinRequestService.listJoinRequests(
@@ -57,7 +62,7 @@ public class CompanyJoinRequestResource {
 
     /* =========================
        REQUEST TO JOIN COMPANY
-       (User action)
+       (AUTH USER)
     ========================== */
 
     @POST
@@ -80,7 +85,7 @@ public class CompanyJoinRequestResource {
 
     /* =========================
        APPROVE JOIN REQUEST
-       (Admin action)
+       (OWNER – UI BUTTON)
     ========================== */
 
     @POST
@@ -95,12 +100,12 @@ public class CompanyJoinRequestResource {
                 requestId
         );
 
-        return Response.ok().build();
+        return Response.noContent().build();
     }
 
     /* =========================
        REJECT JOIN REQUEST
-       (Admin action)
+       (OWNER – UI BUTTON)
     ========================== */
 
     @POST
@@ -113,6 +118,71 @@ public class CompanyJoinRequestResource {
         companyJoinRequestService.rejectJoinRequest(
                 companyId,
                 requestId
+        );
+
+        return Response.noContent().build();
+    }
+
+    /* =========================
+       APPROVE JOIN REQUEST
+       (EMAIL LINK – PUBLIC)
+    ========================== */
+
+    @POST
+    @Path("/approve-by-token")
+    @PermitAll // overrides @Authenticated
+    public Response approveByToken(
+            @PathParam("companyId") String companyId,
+            @QueryParam("token") String token
+    ) {
+
+        if (token == null || token.isBlank()) {
+            throw new BadRequestException("Approval token is missing");
+        }
+
+        ApprovalTokenUtil.TokenData data =
+                ApprovalTokenUtil.validateToken(token);
+
+        // Safety check: token must match URL company
+        if (!companyId.equals(data.getCompanyId())) {
+            throw new BadRequestException("Token does not match company");
+        }
+
+        companyJoinRequestService.approveJoinRequestByToken(
+                data.getCompanyId(),
+                data.getRequestId()
+        );
+
+        return Response.ok().build();
+    }
+
+    /* =========================
+       REJECT JOIN REQUEST
+       (EMAIL LINK – PUBLIC)
+    ========================== */
+
+    @POST
+    @Path("/reject-by-token")
+    @PermitAll
+    public Response rejectByToken(
+            @PathParam("companyId") String companyId,
+            @QueryParam("token") String token
+    ) {
+
+        if (token == null || token.isBlank()) {
+            throw new BadRequestException("Rejection token is missing");
+        }
+
+        ApprovalTokenUtil.TokenData data =
+                ApprovalTokenUtil.validateToken(token);
+
+        if (!companyId.equals(data.getCompanyId())) {
+            throw new BadRequestException("Token does not match company");
+        }
+
+        companyJoinRequestService.rejectJoinRequestByToken(
+                data.getCompanyId(),
+                data.getRequestId()
         );
 
         return Response.ok().build();

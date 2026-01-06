@@ -141,6 +141,27 @@ public List<UserCompanyRole> getCompanyOwners(String companyId) {
     return owners;
 }
 
+public boolean exists(
+        String userId,
+        String companyId,
+        String branchId
+) {
+
+    String sortKey =
+            companyId + "#" +
+            (branchId == null ? "COMPANY" : branchId);
+
+    UserCompanyRole role =
+            DynamoDBUtils.getItem(
+                    table(),
+                    userId,
+                    sortKey
+            );
+
+    return role != null;
+}
+
+
 
     
 }

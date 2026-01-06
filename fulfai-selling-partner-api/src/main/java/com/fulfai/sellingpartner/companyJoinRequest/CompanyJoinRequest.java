@@ -7,9 +7,9 @@ import lombok.Data;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbAttribute;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbBean;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbPartitionKey;
-import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondaryPartitionKey;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSecondarySortKey;
+import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortKey;
 
 @Data
 @DynamoDbBean
@@ -20,21 +20,26 @@ public class CompanyJoinRequest {
        PRIMARY KEYS
     ========================== */
 
-    private String companyId;   // PK
-    private String requestId;   // SK (UUID)
+    private String companyId;     // PK
+    private String requestId;     // SK
 
     /* =========================
        CORE DATA
     ========================== */
 
     private String userId;
-    private String status;      // PENDING | APPROVED | REJECTED
-    private String joinCode;
+    private String status;        // PENDING | APPROVED | REJECTED
     private String message;
 
-    private Instant createdAt;
-    private Instant updatedAt;
+    /* =========================
+       GSI ATTRIBUTES
+    ========================== */
 
+    // company-status-index
+    private String companyStatus; // status#timestamp
+
+    // user-company-index
+    private String userCompany;   // companyId
 
     /* =========================
        AUDIT
@@ -44,20 +49,11 @@ public class CompanyJoinRequest {
     private Instant reviewedAt;
     private String reviewedBy;
 
-    /* =========================
-       GSIs
-    ========================== */
-
-    // GSI 1: company + status
-    private String gsi1Pk;      // companyId
-    private String gsi1Sk;      // status#requestedAt
-
-    // GSI 2: user + company (prevent duplicates)
-    private String gsi2Pk;      // userId
-    private String gsi2Sk;      // companyId
+    private Instant createdAt;
+    private Instant updatedAt;
 
     /* =========================
-       KEY ANNOTATIONS
+       PRIMARY KEY MAPPING
     ========================== */
 
     @DynamoDbPartitionKey
@@ -86,14 +82,19 @@ public class CompanyJoinRequest {
         return status;
     }
 
-    @DynamoDbAttribute("joinCode")
-    public String getJoinCode() {
-        return joinCode;
-    }
-
     @DynamoDbAttribute("message")
     public String getMessage() {
         return message;
+    }
+
+    @DynamoDbAttribute("companyStatus")
+    public String getCompanyStatus() {
+        return companyStatus;
+    }
+
+    @DynamoDbAttribute("userCompany")
+    public String getUserCompany() {
+        return userCompany;
     }
 
     @DynamoDbAttribute("requestedAt")
@@ -112,45 +113,40 @@ public class CompanyJoinRequest {
     }
 
     @DynamoDbAttribute("createdAt")
-public Instant getCreatedAt() {
-    return createdAt;
-}
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
 
-@DynamoDbAttribute("updatedAt")
-public Instant getUpdatedAt() {
-    return updatedAt;
-}
-
+    @DynamoDbAttribute("updatedAt")
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
 
     /* =========================
-       GSI 1: company-status-index
+       GSI: company-status-index
     ========================== */
 
     @DynamoDbSecondaryPartitionKey(indexNames = "company-status-index")
-    @DynamoDbAttribute("GSI1PK")
-    public String getGsi1Pk() {
-        return gsi1Pk;
+    public String getCompanyIdForStatusIndex() {
+        return companyId;
     }
 
     @DynamoDbSecondarySortKey(indexNames = "company-status-index")
-    @DynamoDbAttribute("GSI1SK")
-    public String getGsi1Sk() {
-        return gsi1Sk;
+    public String getCompanyStatusForIndex() {
+        return companyStatus;
     }
 
     /* =========================
-       GSI 2: user-company-index
+       GSI: user-company-index
     ========================== */
 
     @DynamoDbSecondaryPartitionKey(indexNames = "user-company-index")
-    @DynamoDbAttribute("GSI2PK")
-    public String getGsi2Pk() {
-        return gsi2Pk;
+    public String getUserIdForCompanyIndex() {
+        return userId;
     }
 
     @DynamoDbSecondarySortKey(indexNames = "user-company-index")
-    @DynamoDbAttribute("GSI2SK")
-    public String getGsi2Sk() {
-        return gsi2Sk;
+    public String getUserCompanyForIndex() {
+        return userCompany;
     }
 }
