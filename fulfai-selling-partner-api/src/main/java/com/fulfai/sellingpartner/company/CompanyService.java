@@ -1,7 +1,10 @@
 package com.fulfai.sellingpartner.company;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,7 +52,7 @@ public class CompanyService {
     company.setCreatedAt(now);
     company.setUpdatedAt(now);
 
-    String ownerSub = securityIdentity.getPrincipal().getName();
+    String ownerSub = securityIdentity.getAttribute("sub");
     company.setOwnerSub(ownerSub);
 
     // ✅ Explicitly preserve mapped optional fields (safe)
@@ -97,7 +100,7 @@ public class CompanyService {
      */
     public CompanyResponseDTO getCompanyForCurrentUser() {
 
-        String sub = securityIdentity.getPrincipal().getName();
+        String sub = securityIdentity.getAttribute("sub");
         Company company = companyRepository.getByOwnerSub(sub);
 
         if (company == null) {
@@ -107,16 +110,75 @@ public class CompanyService {
         return enrichWithUsers(toResponse(company));
     }
 
-    public List<CompanyResponseDTO> getAllCompaniesForCurrentUser() {
+   public List<CompanyResponseDTO> getAllCompaniesForCurrentUser() {
 
-        String sub = securityIdentity.getPrincipal().getName();
+    String sub = securityIdentity.getAttribute("sub");
 
-        return companyRepository.getAllByOwnerSub(sub)
-                .stream()
-                .map(this::toResponse)
-                .map(this::enrichWithUsers)
-                .collect(Collectors.toList());
+    if (sub == null || sub.isBlank()) {
+        Log.error("[AUTH ERROR] Cognito sub is NULL — authentication misconfigured");
+        return List.of();
     }
+
+    Log.infof(
+        "[AUTH] resolved user sub=%s",
+        sub
+    );
+
+    Set<String> companyIds = new HashSet<>();
+
+    // 1️⃣ Companies the user OWNS
+    List<Company> ownedCompanies = companyRepository.getAllByOwnerSub(sub);
+    Log.infof(
+        "[COMPANY] user %s owns %d companies",
+        sub,
+        ownedCompanies.size()
+    );
+
+    ownedCompanies.forEach(company -> companyIds.add(company.getId()));
+
+    // 2️⃣ Companies the user is STAFF / MEMBER of
+    List<UserCompanyRole> roles = userCompanyRoleRepository.getAllByUserId(sub);
+    Log.infof(
+        "[COMPANY] user %s has %d role entries",
+        sub,
+        roles.size()
+    );
+
+    roles.forEach(role -> {
+        if (role.getBranchId() != null && !"ROOT".equals(role.getBranchId())) {
+            return;
+        }
+        companyIds.add(role.getCompanyId());
+    });
+
+    if (companyIds.isEmpty()) {
+        Log.warnf(
+            "[COMPANY] No companies found for user %s",
+            sub
+        );
+        return List.of();
+    }
+
+    List<CompanyResponseDTO> result = new ArrayList<>();
+
+    for (String companyId : companyIds) {
+        Company company = companyRepository.getById(companyId);
+        if (company != null) {
+            result.add(enrichWithUsers(toResponse(company)));
+        }
+    }
+
+    Log.infof(
+        "[COMPANY] Returning %d companies for user %s",
+        result.size(),
+        sub
+    );
+
+    return result;
+}
+
+
+
 
     /* ============================
        UPDATE COMPANY

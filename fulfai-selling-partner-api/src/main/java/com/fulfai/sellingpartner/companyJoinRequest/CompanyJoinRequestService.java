@@ -84,7 +84,7 @@ public class CompanyJoinRequestService {
             CompanyJoinRequestCreateDTO ignored
     ) {
 
-        String userId = securityIdentity.getPrincipal().getName();
+        String userId = securityIdentity.getAttribute("sub");
 
         if (repository.existsPendingRequest(userId, companyId)) {
             throw new BadRequestException(
@@ -124,7 +124,7 @@ public class CompanyJoinRequestService {
                         companyId,
                         joinRequest.getRequestId()
                 );
-        Log.debug("Notifying Comoany Owner About New Join Request");
+        Log.debug("Noifying Comoany Owner About New Join Request");
 
         notifyCompanyOwners(joinRequest, approvalToken);
 
@@ -146,7 +146,7 @@ public class CompanyJoinRequestService {
         approveJoinRequestInternal(
                 companyId,
                 requestId,
-                securityIdentity.getPrincipal().getName()
+                securityIdentity.getAttribute("sub")
         );
     }
 
@@ -159,6 +159,7 @@ public class CompanyJoinRequestService {
             String companyId,
             String requestId
     ) {
+                    Log.infof("APPROVE_BY_TOKEN called → company=%s request=%s", companyId, requestId);
 
         approveJoinRequestInternal(
                 companyId,
@@ -231,13 +232,13 @@ public class CompanyJoinRequestService {
             String companyId,
             String requestId
     ) {
-
-        assertCurrentUserIsOwner(companyId);
+        Log.infof("REJECT_BY_TOKEN called → company=%s request=%s", companyId, requestId);
+        //assertCurrentUserIsOwner(companyId);
 
         rejectJoinRequestInternal(
                 companyId,
                 requestId,
-                securityIdentity.getPrincipal().getName()
+                 securityIdentity.getAttribute("sub")
         );
     }
 
@@ -314,7 +315,7 @@ public class CompanyJoinRequestService {
     private void assertCurrentUserIsOwner(String companyId) {
 
         String currentUserId =
-                securityIdentity.getPrincipal().getName();
+               securityIdentity.getAttribute("sub");
 
         boolean isOwner =
                 userCompanyRoleRepository

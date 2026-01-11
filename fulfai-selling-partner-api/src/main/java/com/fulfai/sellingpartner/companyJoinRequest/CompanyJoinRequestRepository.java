@@ -154,31 +154,16 @@ public class CompanyJoinRequestRepository {
     request.setUpdatedAt(now);
 
     DynamoDBUtils.transactWriteItems(
-            clientFactory.getEnhancedDynamoClient(),
-            tx -> tx.addUpdateItem(
-                    table(),
-                    TransactUpdateItemEnhancedRequest
-                            .builder(CompanyJoinRequest.class)
-                            .item(request)
-                            .conditionExpression(
-                                    Expression.builder()
-                                            .expression("#status = :expected")
-                                            .expressionNames(
-                                                    Map.of(
-                                                            "#status", "status"
-                                                    )
-                                            )
-                                            .expressionValues(
-                                                    Map.of(
-                                                            ":expected",
-                                                            AttributeValue.fromS(STATUS_PENDING)
-                                                    )
-                                            )
-                                            .build()
-                            )
-                            .build()
-            )
-    );
+    clientFactory.getEnhancedDynamoClient(),
+    tx -> tx.addUpdateItem(
+        table(),
+        TransactUpdateItemEnhancedRequest
+            .builder(CompanyJoinRequest.class)
+            .item(request)
+            .build()
+    )
+);
+
 }
 
 

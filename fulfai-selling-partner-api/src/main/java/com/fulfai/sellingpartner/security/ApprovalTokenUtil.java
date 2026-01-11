@@ -13,7 +13,7 @@ public final class ApprovalTokenUtil {
 
     private static final String HMAC_ALGO = "HmacSHA256";
 
-    // TODO: move to application.properties in prod
+    // TODO: move to application.properties / vault in prod
     private static final String SECRET =
             "CHANGE_ME_TO_LONG_RANDOM_SECRET";
 
@@ -41,6 +41,7 @@ public final class ApprovalTokenUtil {
 
         String token = payload + "|" + signature;
 
+        // URL-safe Base64 (required for query params)
         return Base64.getUrlEncoder()
                 .withoutPadding()
                 .encodeToString(
@@ -59,15 +60,15 @@ public final class ApprovalTokenUtil {
         }
 
         try {
-            String decoded =
-                    new String(
-                            Base64.getUrlDecoder().decode(token),
-                            StandardCharsets.UTF_8
-                    );
+            String decoded = new String(
+                    Base64.getUrlDecoder().decode(token),
+                    StandardCharsets.UTF_8
+            );
 
-            String[] parts = decoded.split("\\|");
+            // companyId | requestId | expiresAt | signature
+            String[] parts = decoded.split("\\|", 4);
             if (parts.length != 4) {
-                throw new IllegalArgumentException("Invalid approval token");
+                throw new IllegalArgumentException("Invalid approval token format");
             }
 
             String companyId = parts[0];
@@ -88,13 +89,19 @@ public final class ApprovalTokenUtil {
                 throw new IllegalArgumentException("Invalid approval token signature");
             }
 
-            Log.infof("Approval token valid → companyId=%s requestId=%s",
-        companyId, requestId);
-
+            Log.debugf(
+                    "Approval token valid (companyId=%s, requestId=%s)",
+                    companyId,
+                    requestId
+            );
 
             return new TokenData(companyId, requestId);
 
+        } catch (IllegalArgumentException e) {
+            // propagate meaningful token errors
+            throw e;
         } catch (Exception e) {
+            // everything else → invalid token
             throw new IllegalArgumentException(
                     "Invalid or expired approval token",
                     e
@@ -115,6 +122,7 @@ public final class ApprovalTokenUtil {
                             HMAC_ALGO
                     )
             );
+
             return Base64.getUrlEncoder()
                     .withoutPadding()
                     .encodeToString(
@@ -122,18 +130,21 @@ public final class ApprovalTokenUtil {
                                     data.getBytes(StandardCharsets.UTF_8)
                             )
                     );
+
         } catch (Exception e) {
             throw new RuntimeException("Failed to sign approval token", e);
         }
     }
 
     private static boolean constantTimeEquals(String a, String b) {
-        if (a == null || b == null || a.length() != b.length()) return false;
-        int r = 0;
-        for (int i = 0; i < a.length(); i++) {
-            r |= a.charAt(i) ^ b.charAt(i);
+        if (a == null || b == null || a.length() != b.length()) {
+            return false;
         }
-        return r == 0;
+        int result = 0;
+        for (int i = 0; i < a.length(); i++) {
+            result |= a.charAt(i) ^ b.charAt(i);
+        }
+        return result == 0;
     }
 
     /* =========================

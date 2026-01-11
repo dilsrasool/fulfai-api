@@ -21,10 +21,20 @@ public class CategoryService {
     CategoryMapper categoryMapper;
 
     public CategoryResponseDTO createCategory(@Valid CategoryRequestDTO categoryDTO) {
-        // Check if category with same name already exists
+
+        if (categoryDTO == null) {
+            throw new BadRequestException("Category request body is required");
+        }
+
+        if (categoryDTO.getName() == null || categoryDTO.getName().isBlank()) {
+            throw new BadRequestException("Category name is required");
+        }
+
         Category existing = categoryRepository.getByName(categoryDTO.getName());
         if (existing != null) {
-            throw new BadRequestException("Category with name '" + categoryDTO.getName() + "' already exists");
+            throw new BadRequestException(
+                    "Category with name '" + categoryDTO.getName() + "' already exists"
+            );
         }
 
         Category category = categoryMapper.toEntity(categoryDTO);
@@ -48,57 +58,69 @@ public class CategoryService {
 
     public CategoryResponseDTO getCategoryByName(String name) {
         Log.debugf("Getting category by name: %s", name);
+
         Category category = categoryRepository.getByName(name);
-        if (category != null) {
-            return categoryMapper.toResponseDTO(category);
-        } else {
+        if (category == null) {
             throw new NotFoundException("Category not found with name: " + name);
         }
+
+        return categoryMapper.toResponseDTO(category);
     }
 
     public List<CategoryResponseDTO> getAllCategories() {
         Log.debugf("Getting all categories");
-        List<Category> categories = categoryRepository.getAll();
 
-        return categories.stream()
+        return categoryRepository.getAll()
+                .stream()
                 .map(categoryMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
     public CategoryResponseDTO updateCategory(String name, @Valid CategoryRequestDTO categoryDTO) {
+
+        if (categoryDTO == null) {
+            throw new BadRequestException("Category request body is required");
+        }
+
+        if (categoryDTO.getName() == null || categoryDTO.getName().isBlank()) {
+            throw new BadRequestException("Category name is required");
+        }
+
         Category originalCategory = categoryRepository.getByName(name);
-        if (originalCategory != null) {
-            // If name is being changed, we need to delete old and create new
-            if (!name.equals(categoryDTO.getName())) {
-                // Check if new name already exists
-                Category existingWithNewName = categoryRepository.getByName(categoryDTO.getName());
-                if (existingWithNewName != null) {
-                    throw new BadRequestException("Category with name '" + categoryDTO.getName() + "' already exists");
-                }
-                // Delete old category
-                categoryRepository.delete(name);
-            }
-
-            Category category = categoryMapper.toEntity(categoryDTO);
-            category.setCreatedAt(originalCategory.getCreatedAt());
-            category.setUpdatedAt(Instant.now());
-
-            categoryRepository.save(category);
-            Log.debugf("Updated category: %s", category.getName());
-
-            return categoryMapper.toResponseDTO(category);
-        } else {
+        if (originalCategory == null) {
             throw new NotFoundException("Category not found with name: " + name);
         }
+
+        if (!name.equals(categoryDTO.getName())) {
+            Category existingWithNewName =
+                    categoryRepository.getByName(categoryDTO.getName());
+
+            if (existingWithNewName != null) {
+                throw new BadRequestException(
+                        "Category with name '" + categoryDTO.getName() + "' already exists"
+                );
+            }
+
+            categoryRepository.delete(name);
+        }
+
+        Category category = categoryMapper.toEntity(categoryDTO);
+        category.setCreatedAt(originalCategory.getCreatedAt());
+        category.setUpdatedAt(Instant.now());
+
+        categoryRepository.save(category);
+        Log.debugf("Updated category: %s", category.getName());
+
+        return categoryMapper.toResponseDTO(category);
     }
 
     public void deleteCategory(String name) {
         Category category = categoryRepository.getByName(name);
-        if (category != null) {
-            categoryRepository.delete(name);
-            Log.debugf("Deleted category: %s", name);
-        } else {
+        if (category == null) {
             throw new NotFoundException("Category not found with name: " + name);
         }
+
+        categoryRepository.delete(name);
+        Log.debugf("Deleted category: %s", name);
     }
 }

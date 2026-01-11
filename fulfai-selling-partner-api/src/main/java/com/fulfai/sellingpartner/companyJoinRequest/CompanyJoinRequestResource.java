@@ -140,20 +140,25 @@ public class CompanyJoinRequestResource {
             throw new BadRequestException("Approval token is missing");
         }
 
-        ApprovalTokenUtil.TokenData data =
-                ApprovalTokenUtil.validateToken(token);
+        try {
+            ApprovalTokenUtil.TokenData data =
+                    ApprovalTokenUtil.validateToken(token);
 
-        // Safety check: token must match URL company
-        if (!companyId.equals(data.getCompanyId())) {
-            throw new BadRequestException("Token does not match company");
+            // Safety check: token must match URL company
+            if (!companyId.equals(data.getCompanyId())) {
+                throw new BadRequestException("Token does not match company");
+            }
+
+            companyJoinRequestService.approveJoinRequestByToken(
+                    data.getCompanyId(),
+                    data.getRequestId()
+            );
+
+            return Response.ok().build();
+
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
         }
-
-        companyJoinRequestService.approveJoinRequestByToken(
-                data.getCompanyId(),
-                data.getRequestId()
-        );
-
-        return Response.ok().build();
     }
 
     /* =========================
@@ -173,18 +178,23 @@ public class CompanyJoinRequestResource {
             throw new BadRequestException("Rejection token is missing");
         }
 
-        ApprovalTokenUtil.TokenData data =
-                ApprovalTokenUtil.validateToken(token);
+        try {
+            ApprovalTokenUtil.TokenData data =
+                    ApprovalTokenUtil.validateToken(token);
 
-        if (!companyId.equals(data.getCompanyId())) {
-            throw new BadRequestException("Token does not match company");
+            if (!companyId.equals(data.getCompanyId())) {
+                throw new BadRequestException("Token does not match company");
+            }
+
+            companyJoinRequestService.rejectJoinRequestByToken(
+                    data.getCompanyId(),
+                    data.getRequestId()
+            );
+
+            return Response.ok().build();
+
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
         }
-
-        companyJoinRequestService.rejectJoinRequestByToken(
-                data.getCompanyId(),
-                data.getRequestId()
-        );
-
-        return Response.ok().build();
     }
 }

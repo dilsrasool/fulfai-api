@@ -14,25 +14,80 @@ import jakarta.enterprise.context.ApplicationScoped;
 public class CognitoSecurityProvider implements LambdaIdentityProvider {
 
     @Override
-    public SecurityIdentity authenticate(AwsProxyRequest event, AuthenticationRequestContext context) {
-        String cognitoIdentity = event.getRequestContext().getIdentity().getCognitoAuthenticationProvider();
+    public SecurityIdentity authenticate(
+            AwsProxyRequest event,
+            AuthenticationRequestContext context
+    ) {
+
+        String path = event.getPath();
+
+        /* =====================================================
+           🔓 PUBLIC EMAIL TOKEN ENDPOINTS (NO AUTH)
+        ====================================================== */
+        if (path != null &&
+            (path.contains("/join-requests/approve-by-token")
+          || path.contains("/join-requests/reject-by-token"))) {
+
+            Log.debugf(
+                "SECURITY_AUTH: Public token endpoint → %s (anonymous identity)",
+                path
+            );
+
+            return QuarkusSecurityIdentity.builder()
+                    .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
+                    .addAttribute("auth_type", "PUBLIC_TOKEN")
+                    .build();
+        }
+
+        /* =====================================================
+           🔐 NORMAL AUTHENTICATED FLOW
+        ====================================================== */
+
+        if (event.getRequestContext() == null
+            || event.getRequestContext().getIdentity() == null) {
+
+            Log.debug("SECURITY_AUTH: No request identity found");
+            return null;
+        }
+
+        String cognitoIdentity =
+                event.getRequestContext()
+                     .getIdentity()
+                     .getCognitoAuthenticationProvider();
+
+        String authType =
+                event.getRequestContext()
+                     .getIdentity()
+                     .getCognitoAuthenticationType();
+
         String sub = CognitoUtils.extractSubFromString(cognitoIdentity);
-        String authType = event.getRequestContext().getIdentity().getCognitoAuthenticationType();
 
-        Log.debugf("SECURITY_AUTH: sub=%s, authType=%s", sub, authType);
+        Log.debugf(
+            "SECURITY_AUTH: sub=%s, authType=%s",
+            sub,
+            authType
+        );
 
-        if (sub == null) {
+        if (sub == null || sub.isBlank()) {
             Log.debug("SECURITY_AUTH: No Cognito sub found, returning null");
             return null;
         }
 
         Principal principal = new QuarkusPrincipal(sub);
 
-        QuarkusSecurityIdentity.Builder builder = QuarkusSecurityIdentity.builder();
-        builder.setPrincipal(principal);
-        builder.addAttribute("auth_type", authType);
-        builder.addAttribute("cognito_sub", sub);
+        // 🔥 THIS IS THE CRITICAL FIX
+        return QuarkusSecurityIdentity.builder()
+                .setPrincipal(principal)
 
-        return builder.build();
+                // legacy compatibility
+                .addAttribute("auth_type", authType)
+
+                // ✅ REQUIRED BY CompanyService
+                .addAttribute("sub", sub)
+
+                // optional (kept for debugging)
+                .addAttribute("cognito_sub", sub)
+
+                .build();
     }
 }

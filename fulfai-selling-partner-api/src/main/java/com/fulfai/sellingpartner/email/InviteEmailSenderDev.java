@@ -22,6 +22,9 @@ public class InviteEmailSenderDev implements InviteEmailSender {
         String approvalUrl =
                 "/company/" + companyId + "/join-requests/approve-by-token?token=" + approvalToken;
 
+        String rejectUrl =
+                "/company/" + companyId + "/join-requests/reject-by-token?token=" + approvalToken;
+
         Log.infof(
             """
             =================== DEV EMAIL ===================
@@ -32,11 +35,15 @@ public class InviteEmailSenderDev implements InviteEmailSender {
             ✅ APPROVE JOIN REQUEST:
             %s
             =================================================
+
+            ❌ REJECT:
+            %s
             """,
             ownerUserId,
             companyId,
             requestId,
-            approvalUrl
+            approvalUrl,
+            rejectUrl
         );
     }
 }

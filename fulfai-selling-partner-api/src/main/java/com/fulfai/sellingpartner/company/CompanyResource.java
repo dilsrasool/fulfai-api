@@ -7,12 +7,13 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 
+import io.quarkus.logging.Log;
 import io.quarkus.security.Authenticated;
 
 @Path("/company")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
-@Authenticated   // ✅ secure all endpoints
+//@Authenticated   // ✅ secure all endpoints
 public class CompanyResource {
 
     @Inject
@@ -65,6 +66,7 @@ public class CompanyResource {
     @GET
     @Path("/my-companies")
     public List<CompanyResponseDTO> getAllMyCompanies() {
+         Log.info("🚨 ENTERED CompanyResource.getAllMyCompanies()");
         return companyService.getAllCompaniesForCurrentUser();
     }
 
