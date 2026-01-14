@@ -103,34 +103,25 @@ public class OrderService {
 
 public PaginatedResponse<OrderResponseDTO> getOrdersByDateRange(
         String companyId,
-        LocalDate startDate,
-        LocalDate endDate,
+        Instant startDate,
+        Instant endDate,
         String nextToken,
         Integer limit
 ) {
-    // Convert date-only → UTC Instants
-    Instant startInstant = startDate
-            .atStartOfDay(ZoneOffset.UTC)
-            .toInstant();
-
-    // End is exclusive → add 1 day
-    Instant endInstant = endDate
-            .plusDays(1)
-            .atStartOfDay(ZoneOffset.UTC)
-            .toInstant();
+   
 
     Log.debugf(
             "Getting orders for company: %s, startDate: %s, endDate: %s",
             companyId,
-            startInstant,
-            endInstant
+            startDate,
+            endDate
     );
 
     PaginatedResponse<Order> response =
             orderRepository.getByDateRange(
                     companyId,
-                    startInstant,
-                    endInstant,
+                    startDate,
+                    endDate,
                     nextToken,
                     limit
             );
