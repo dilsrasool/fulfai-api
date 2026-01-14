@@ -166,38 +166,62 @@ public class Schemas {
                                         .setter(Branch::setUpdatedAt))
                         .build();
 
-        public static final TableSchema<Category> CATEGORY_SCHEMA = TableSchema.builder(Category.class)
-                        .newItemSupplier(Category::new)
-                        .addAttribute(String.class, a -> a.name("name")
-                                        .getter(Category::getName)
-                                        .setter(Category::setName)
-                                        .tags(StaticAttributeTags.primaryPartitionKey()))
-                        .addAttribute(String.class, a -> a.name("parentCategory")
-                                        .getter(Category::getParentCategory)
-                                        .setter(Category::setParentCategory)
-                                        .tags(StaticAttributeTags.secondaryPartitionKey(Category.PARENT_GSI)))
-                        .addAttribute(EnhancedType.listOf(String.class), a -> a.name("parentCategories")
-                                        .getter(Category::getParentCategories)
-                                        .setter(Category::setParentCategories))
-                        .addAttribute(String.class, a -> a.name("description")
-                                        .getter(Category::getDescription)
-                                        .setter(Category::setDescription))
-                        .addAttribute(String.class, a -> a.name("imageUrl")
-                                        .getter(Category::getImageUrl)
-                                        .setter(Category::setImageUrl))
-                        .addAttribute(Integer.class, a -> a.name("displayOrder")
-                                        .getter(Category::getDisplayOrder)
-                                        .setter(Category::setDisplayOrder))
-                        .addAttribute(Boolean.class, a -> a.name("isActive")
-                                        .getter(Category::getIsActive)
-                                        .setter(Category::setIsActive))
-                        .addAttribute(Instant.class, a -> a.name("createdAt")
-                                        .getter(Category::getCreatedAt)
-                                        .setter(Category::setCreatedAt))
-                        .addAttribute(Instant.class, a -> a.name("updatedAt")
-                                        .getter(Category::getUpdatedAt)
-                                        .setter(Category::setUpdatedAt))
-                        .build();
+public static final TableSchema<Category> CATEGORY_SCHEMA =
+        TableSchema.builder(Category.class)
+            .newItemSupplier(Category::new)
+
+            // ---------- Primary Key ----------
+            .addAttribute(String.class, a -> a.name("companyId")
+                .getter(Category::getCompanyId)
+                .setter(Category::setCompanyId)
+                .tags(StaticAttributeTags.primaryPartitionKey()))
+
+            .addAttribute(String.class, a -> a.name("categoryId")
+                .getter(Category::getCategoryId)
+                .setter(Category::setCategoryId)
+                .tags(StaticAttributeTags.primarySortKey()))
+
+            // ---------- GSI: Parent Category ----------
+            .addAttribute(String.class, a -> a.name("parentCategoryId")
+                .getter(Category::getParentCategoryId)
+                .setter(Category::setParentCategoryId)
+                .tags(StaticAttributeTags.secondaryPartitionKey(Category.PARENT_GSI)))
+
+            // ---------- Business Fields ----------
+            .addAttribute(String.class, a -> a.name("name")
+                .getter(Category::getName)
+                .setter(Category::setName))
+
+            .addAttribute(EnhancedType.listOf(String.class), a -> a.name("parentCategories")
+                .getter(Category::getParentCategories)
+                .setter(Category::setParentCategories))
+
+            .addAttribute(String.class, a -> a.name("description")
+                .getter(Category::getDescription)
+                .setter(Category::setDescription))
+
+            .addAttribute(String.class, a -> a.name("imageUrl")
+                .getter(Category::getImageUrl)
+                .setter(Category::setImageUrl))
+
+            .addAttribute(Integer.class, a -> a.name("displayOrder")
+                .getter(Category::getDisplayOrder)
+                .setter(Category::setDisplayOrder))
+
+            .addAttribute(Boolean.class, a -> a.name("isActive")
+                .getter(Category::getIsActive)
+                .setter(Category::setIsActive))
+
+            .addAttribute(Instant.class, a -> a.name("createdAt")
+                .getter(Category::getCreatedAt)
+                .setter(Category::setCreatedAt))
+
+            .addAttribute(Instant.class, a -> a.name("updatedAt")
+                .getter(Category::getUpdatedAt)
+                .setter(Category::setUpdatedAt))
+
+            .build();
+
 
         public static final TableSchema<Product> PRODUCT_SCHEMA = TableSchema.builder(Product.class)
                         .newItemSupplier(Product::new)

@@ -15,9 +15,15 @@ public class CategoryRequestDTO {
     @Size(max = 100, message = "Name must be less than 100 characters")
     private String name;
 
-    @Size(max = 100, message = "Parent category must be less than 100 characters")
-    private String parentCategory;
+    /**
+     * Parent category ID (NOT name)
+     */
+    @Size(max = 100, message = "Parent category ID must be less than 100 characters")
+    private String parentCategoryId;
 
+    /**
+     * Full ancestry path (IDs)
+     */
     private List<String> parentCategories;
 
     @Size(max = 500, message = "Description must be less than 500 characters")
@@ -27,6 +33,5 @@ public class CategoryRequestDTO {
     private String imageUrl;
 
     private Integer displayOrder;
-
     private Boolean isActive;
 }

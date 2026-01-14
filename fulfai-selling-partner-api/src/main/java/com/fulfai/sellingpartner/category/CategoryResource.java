@@ -4,19 +4,13 @@ import java.util.List;
 
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.DELETE;
-import jakarta.ws.rs.GET;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.PUT;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.PathParam;
-import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
-@Path("/category")
+@Path("/company/{companyId}/categories")
 @Consumes(MediaType.APPLICATION_JSON)
 @Produces(MediaType.APPLICATION_JSON)
 public class CategoryResource {
@@ -24,56 +18,72 @@ public class CategoryResource {
     @Inject
     CategoryService categoryService;
 
+    // --------------------------------------------------
+    // Create category (company-scoped)
+    // --------------------------------------------------
     @POST
     public Response createCategory(
+            @PathParam("companyId") @NotBlank String companyId,
             @NotNull @Valid CategoryRequestDTO request
     ) {
-        CategoryResponseDTO createdCategory =
-                categoryService.createCategory(request);
-
         return Response
                 .status(Response.Status.CREATED)
-                .entity(createdCategory)
+                .entity(categoryService.createCategory(companyId, request))
                 .build();
     }
 
+    // --------------------------------------------------
+    // Get all categories (company-scoped)
+    // --------------------------------------------------
     @GET
-    public Response getAllCategories() {
+    public Response getAllCategories(
+            @PathParam("companyId") @NotBlank String companyId
+    ) {
         List<CategoryResponseDTO> categories =
-                categoryService.getAllCategories();
+                categoryService.getAllCategories(companyId);
 
         return Response.ok(categories).build();
     }
 
+    // --------------------------------------------------
+    // Get category by ID (company-scoped)
+    // --------------------------------------------------
     @GET
-    @Path("/{name}")
-    public Response getCategoryByName(
-            @PathParam("name") String name
+    @Path("/{categoryId}")
+    public Response getCategoryById(
+            @PathParam("companyId") @NotBlank String companyId,
+            @PathParam("categoryId") @NotBlank String categoryId
     ) {
-        CategoryResponseDTO category =
-                categoryService.getCategoryByName(name);
-
-        return Response.ok(category).build();
+        return Response.ok(
+                categoryService.getCategoryById(companyId, categoryId)
+        ).build();
     }
 
+    // --------------------------------------------------
+    // Update category (company-scoped)
+    // --------------------------------------------------
     @PUT
-    @Path("/{name}")
+    @Path("/{categoryId}")
     public Response updateCategory(
-            @PathParam("name") String name,
+            @PathParam("companyId") @NotBlank String companyId,
+            @PathParam("categoryId") @NotBlank String categoryId,
             @NotNull @Valid CategoryRequestDTO request
     ) {
-        CategoryResponseDTO updatedCategory =
-                categoryService.updateCategory(name, request);
-
-        return Response.ok(updatedCategory).build();
+        return Response.ok(
+                categoryService.updateCategory(companyId, categoryId, request)
+        ).build();
     }
 
+    // --------------------------------------------------
+    // Delete category (company-scoped)
+    // --------------------------------------------------
     @DELETE
-    @Path("/{name}")
+    @Path("/{categoryId}")
     public Response deleteCategory(
-            @PathParam("name") String name
+            @PathParam("companyId") @NotBlank String companyId,
+            @PathParam("categoryId") @NotBlank String categoryId
     ) {
-        categoryService.deleteCategory(name);
+        categoryService.deleteCategory(companyId, categoryId);
         return Response.noContent().build();
     }
 }

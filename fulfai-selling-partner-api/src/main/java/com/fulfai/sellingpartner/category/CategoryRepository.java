@@ -1,26 +1,19 @@
 package com.fulfai.sellingpartner.category;
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import com.fulfai.common.dynamodb.ClientFactory;
 import com.fulfai.common.dynamodb.DynamoDBUtils;
-import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.sellingpartner.Schemas;
 
-import io.quarkus.logging.Log;
-import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
-import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
-import software.amazon.awssdk.enhanced.dynamodb.model.Page;
 
 @ApplicationScoped
-@RegisterForReflection
 public class CategoryRepository {
 
     @ConfigProperty(name = "category.table.name")
@@ -29,41 +22,94 @@ public class CategoryRepository {
     @Inject
     ClientFactory clientFactory;
 
-    private DynamoDbTable<Category> getCategoryTable() {
-        return clientFactory.getEnhancedDynamoClient().table(tableName, Schemas.CATEGORY_SCHEMA);
+    // --------------------------------------------------
+    // Table
+    // --------------------------------------------------
+    private DynamoDbTable<Category> getTable() {
+        return clientFactory
+                .getEnhancedDynamoClient()
+                .table(tableName, Schemas.CATEGORY_SCHEMA);
     }
 
+    // --------------------------------------------------
+    // GSI: parent-index (PK = parentCategoryId, SK = categoryId)
+    // --------------------------------------------------
     private DynamoDbIndex<Category> getParentIndex() {
-        return getCategoryTable().index(Category.PARENT_GSI);
+        return getTable().index(Category.PARENT_GSI);
     }
 
-    public Category getByName(String name) {
-        return DynamoDBUtils.getItem(getCategoryTable(), name);
+    // --------------------------------------------------
+    // Get by company + categoryId (PRIMARY KEY LOOKUP)
+    // --------------------------------------------------
+    public Category getByCompanyAndId(String companyId, String categoryId) {
+        return DynamoDBUtils.getItem(
+                getTable(),
+                companyId,
+                categoryId
+        );
     }
 
-    public List<Category> getAll() {
-        Log.debugf("DYNAMODB_SCAN: table=%s", tableName);
-        List<Category> items = new ArrayList<>();
-        for (Page<Category> page : getCategoryTable().scan(ScanEnhancedRequest.builder().build())) {
-            items.addAll(page.items());
-        }
-        Log.debugf("DYNAMODB_SCAN_RESULT: table=%s, count=%d", tableName, items.size());
-        return items;
+    // --------------------------------------------------
+    // Get by company + name (uniqueness check)
+    // --------------------------------------------------
+    public Category getByCompanyAndName(String companyId, String name) {
+        return DynamoDBUtils
+                .queryByPartitionKey(
+                        getTable(),
+                        companyId,
+                        null,
+                        null
+                )
+                .getItems()
+                .stream()
+                .filter(c -> name.equalsIgnoreCase(c.getName()))
+                .findFirst()
+                .orElse(null);
     }
 
-    public PaginatedResponse<Category> getByParentCategory(String parentCategory, String nextToken, Integer limit) {
-        return DynamoDBUtils.queryGsiByPartitionKey(getParentIndex(), parentCategory, nextToken, limit);
+    // --------------------------------------------------
+    // Get all categories for a company
+    // --------------------------------------------------
+    public List<Category> getAllByCompany(String companyId) {
+        return DynamoDBUtils
+                .queryByPartitionKey(
+                        getTable(),
+                        companyId,
+                        null,
+                        null
+                )
+                .getItems();
     }
 
+    // --------------------------------------------------
+    // Get children categories (hierarchy)
+    // --------------------------------------------------
+    public List<Category> getChildren(String parentCategoryId) {
+        return DynamoDBUtils
+                .queryGsiByPartitionKey(
+                        getParentIndex(),
+                        parentCategoryId,
+                        null,
+                        null
+                )
+                .getItems();
+    }
+
+    // --------------------------------------------------
+    // Save (create / update)
+    // --------------------------------------------------
     public void save(Category category) {
-        DynamoDBUtils.putItem(getCategoryTable(), category);
+        DynamoDBUtils.putItem(getTable(), category);
     }
 
-    public void delete(String name) {
-        DynamoDBUtils.deleteItem(getCategoryTable(), name);
-    }
-
-    public String getTableName() {
-        return tableName;
+    // --------------------------------------------------
+    // Delete (company-safe)
+    // --------------------------------------------------
+    public void delete(String companyId, String categoryId) {
+        DynamoDBUtils.deleteItem(
+                getTable(),
+                companyId,
+                categoryId
+        );
     }
 }

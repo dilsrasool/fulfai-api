@@ -6,6 +6,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneOffset;
 
 import com.fulfai.common.dynamodb.DynamoDBUtils;
 import com.fulfai.common.dto.PaginatedResponse;
@@ -96,19 +99,53 @@ public class OrderService {
         }
     }
 
-    public PaginatedResponse<OrderResponseDTO> getOrdersByDateRange(String companyId, Instant startDate,
-            Instant endDate, String nextToken, Integer limit) {
-        Log.debugf("Getting orders for company: %s, startDate: %s, endDate: %s", companyId, startDate, endDate);
-        PaginatedResponse<Order> response = orderRepository.getByDateRange(companyId, startDate, endDate, nextToken, limit);
 
-        return PaginatedResponse.<OrderResponseDTO>builder()
-                .items(response.getItems().stream()
-                        .map(orderMapper::toResponseDTO)
-                        .collect(Collectors.toList()))
-                .nextToken(response.getNextToken())
-                .hasMore(response.isHasMore())
-                .build();
-    }
+
+public PaginatedResponse<OrderResponseDTO> getOrdersByDateRange(
+        String companyId,
+        LocalDate startDate,
+        LocalDate endDate,
+        String nextToken,
+        Integer limit
+) {
+    // Convert date-only → UTC Instants
+    Instant startInstant = startDate
+            .atStartOfDay(ZoneOffset.UTC)
+            .toInstant();
+
+    // End is exclusive → add 1 day
+    Instant endInstant = endDate
+            .plusDays(1)
+            .atStartOfDay(ZoneOffset.UTC)
+            .toInstant();
+
+    Log.debugf(
+            "Getting orders for company: %s, startDate: %s, endDate: %s",
+            companyId,
+            startInstant,
+            endInstant
+    );
+
+    PaginatedResponse<Order> response =
+            orderRepository.getByDateRange(
+                    companyId,
+                    startInstant,
+                    endInstant,
+                    nextToken,
+                    limit
+            );
+
+    return PaginatedResponse.<OrderResponseDTO>builder()
+            .items(
+                    response.getItems().stream()
+                            .map(orderMapper::toResponseDTO)
+                            .collect(Collectors.toList())
+            )
+            .nextToken(response.getNextToken())
+            .hasMore(response.isHasMore())
+            .build();
+}
+
 
     public void updateOrderStatus(String companyId, String orderId, String newStatus) {
         // Validate the target status is valid

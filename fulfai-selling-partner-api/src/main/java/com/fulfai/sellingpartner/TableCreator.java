@@ -151,38 +151,66 @@ public class TableCreator {
        CATEGORY
     ========================== */
 
-    public static void createCategoryTable(DynamoDbClient dynamoDbClient, String tableName) {
-        if (tableExists(dynamoDbClient, tableName)) return;
+   public static void createCategoryTable(DynamoDbClient dynamoDbClient, String tableName) {
+    if (tableExists(dynamoDbClient, tableName)) return;
 
-        dynamoDbClient.createTable(builder -> builder
-            .tableName(tableName)
-            .keySchema(KeySchemaElement.builder()
-                .attributeName("name")
+    dynamoDbClient.createTable(builder -> builder
+        .tableName(tableName)
+
+        // ---------- Primary Key ----------
+        .keySchema(
+            KeySchemaElement.builder()
+                .attributeName("companyId")
                 .keyType(KeyType.HASH)
-                .build())
-            .attributeDefinitions(
-                AttributeDefinition.builder()
-                    .attributeName("name")
-                    .attributeType(ScalarAttributeType.S)
-                    .build(),
-                AttributeDefinition.builder()
-                    .attributeName("parentCategory")
-                    .attributeType(ScalarAttributeType.S)
-                    .build())
-            .globalSecondaryIndexes(
-                GlobalSecondaryIndex.builder()
-                    .indexName(Category.PARENT_GSI)
-                    .keySchema(KeySchemaElement.builder()
-                        .attributeName("parentCategory")
+                .build(),
+            KeySchemaElement.builder()
+                .attributeName("categoryId")
+                .keyType(KeyType.RANGE)
+                .build()
+        )
+
+        // ---------- Attribute Definitions ----------
+        .attributeDefinitions(
+            AttributeDefinition.builder()
+                .attributeName("companyId")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+            AttributeDefinition.builder()
+                .attributeName("categoryId")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+            AttributeDefinition.builder()
+                .attributeName("parentCategoryId")
+                .attributeType(ScalarAttributeType.S)
+                .build()
+        )
+
+        // ---------- GSI: Parent Category ----------
+        .globalSecondaryIndexes(
+            GlobalSecondaryIndex.builder()
+                .indexName(Category.PARENT_GSI) // e.g. "parent-index"
+                .keySchema(
+                    KeySchemaElement.builder()
+                        .attributeName("companyId")
                         .keyType(KeyType.HASH)
-                        .build())
-                    .projection(Projection.builder()
-                        .projectionType(ProjectionType.ALL)
-                        .build())
-                    .build())
-            .billingMode(BillingMode.PAY_PER_REQUEST)
-        );
-    }
+                        .build(),
+                    KeySchemaElement.builder()
+                        .attributeName("parentCategoryId")
+                        .keyType(KeyType.RANGE)
+                        .build()
+                )
+                .projection(Projection.builder()
+                    .projectionType(ProjectionType.ALL)
+                    .build()
+                )
+                .build()
+        )
+
+        // ---------- Billing ----------
+        .billingMode(BillingMode.PAY_PER_REQUEST)
+    );
+}
+
 
     /* =========================
        PRODUCT

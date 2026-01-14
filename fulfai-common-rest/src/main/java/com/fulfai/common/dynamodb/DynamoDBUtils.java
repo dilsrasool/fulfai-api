@@ -553,4 +553,51 @@ public static Expression attributeNotExists(String attributeName) {
 }
 
 
+public static <T> PaginatedResponse<T> queryGsiByCompositeKey(
+        DynamoDbIndex<T> index,
+        String partitionKeyValue,
+        String sortKeyValue,
+        String nextToken,
+        Integer limit
+) {
+    QueryConditional queryConditional =
+            QueryConditional.keyEqualTo(k -> k
+                    .partitionValue(partitionKeyValue)
+                    .sortValue(sortKeyValue)
+            );
+
+    QueryEnhancedRequest.Builder requestBuilder =
+            QueryEnhancedRequest.builder()
+                    .queryConditional(queryConditional);
+
+    if (limit != null && limit > 0) {
+        requestBuilder.limit(limit);
+    }
+
+    if (nextToken != null && !nextToken.isBlank()) {
+        requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+    }
+
+    List<T> items = new ArrayList<>();
+    Page<T> lastPage = null;
+
+    for (Page<T> page : index.query(requestBuilder.build())) {
+        items.addAll(page.items());
+        lastPage = page;
+        break; // one page only (consistent with your utils)
+    }
+
+    return PaginatedResponse.<T>builder()
+            .items(items)
+            .nextToken(
+                    lastPage != null && lastPage.lastEvaluatedKey() != null
+                            ? encodeLastEvaluatedKey(lastPage.lastEvaluatedKey())
+                            : null
+            )
+            .hasMore(lastPage != null && lastPage.lastEvaluatedKey() != null)
+            .build();
+}
+
+
+
 }

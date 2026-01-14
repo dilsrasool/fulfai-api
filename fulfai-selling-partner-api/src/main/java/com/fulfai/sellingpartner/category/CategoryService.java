@@ -1,18 +1,20 @@
 package com.fulfai.sellingpartner.category;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
-import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import jakarta.validation.Valid;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 
 @ApplicationScoped
 public class CategoryService {
+
+    private static final String ROOT = "ROOT";
 
     @Inject
     CategoryRepository categoryRepository;
@@ -20,29 +22,65 @@ public class CategoryService {
     @Inject
     CategoryMapper categoryMapper;
 
-    public CategoryResponseDTO createCategory(@Valid CategoryRequestDTO categoryDTO) {
-
-        if (categoryDTO == null) {
-            throw new BadRequestException("Category request body is required");
+    // --------------------------------------------------
+    // Create
+    // --------------------------------------------------
+    public CategoryResponseDTO createCategory(
+            String companyId,
+            CategoryRequestDTO dto
+    ) {
+        if (companyId == null || companyId.isBlank()) {
+            throw new BadRequestException("companyId is required");
         }
 
-        if (categoryDTO.getName() == null || categoryDTO.getName().isBlank()) {
+        if (dto == null || dto.getName() == null || dto.getName().isBlank()) {
             throw new BadRequestException("Category name is required");
         }
 
-        Category existing = categoryRepository.getByName(categoryDTO.getName());
+        // ---------- Unique name per company ----------
+        Category existing =
+                categoryRepository.getByCompanyAndName(companyId, dto.getName());
+
         if (existing != null) {
             throw new BadRequestException(
-                    "Category with name '" + categoryDTO.getName() + "' already exists"
+                    "Category with name '" + dto.getName() + "' already exists"
             );
         }
 
-        Category category = categoryMapper.toEntity(categoryDTO);
+        Category category = categoryMapper.toEntity(dto);
 
+        // ---------- Keys ----------
+        category.setCompanyId(companyId);
+        category.setCategoryId(UUID.randomUUID().toString());
+
+        // ---------- Hierarchy ----------
+        if (dto.getParentCategoryId() == null || dto.getParentCategoryId().isBlank()) {
+            category.setParentCategoryId(ROOT);
+            category.setParentCategories(List.of());
+        } else {
+            Category parent =
+                    categoryRepository.getByCompanyAndId(
+                            companyId,
+                            dto.getParentCategoryId()
+                    );
+
+            if (parent == null) {
+                throw new BadRequestException("Parent category not found");
+            }
+
+            List<String> ancestry = new ArrayList<>(parent.getParentCategories());
+            ancestry.add(parent.getCategoryId());
+
+            category.setParentCategoryId(parent.getCategoryId());
+            category.setParentCategories(ancestry);
+        }
+
+        // ---------- Timestamps ----------
         Instant now = Instant.now();
         category.setCreatedAt(now);
         category.setUpdatedAt(now);
 
+        // ---------- Defaults ----------
         if (category.getIsActive() == null) {
             category.setIsActive(true);
         }
@@ -51,76 +89,99 @@ public class CategoryService {
         }
 
         categoryRepository.save(category);
-        Log.debugf("Created category: %s", category.getName());
 
         return categoryMapper.toResponseDTO(category);
     }
 
-    public CategoryResponseDTO getCategoryByName(String name) {
-        Log.debugf("Getting category by name: %s", name);
-
-        Category category = categoryRepository.getByName(name);
-        if (category == null) {
-            throw new NotFoundException("Category not found with name: " + name);
+    // --------------------------------------------------
+    // Get all (company)
+    // --------------------------------------------------
+    public List<CategoryResponseDTO> getAllCategories(String companyId) {
+        if (companyId == null || companyId.isBlank()) {
+            throw new BadRequestException("companyId is required");
         }
 
-        return categoryMapper.toResponseDTO(category);
-    }
-
-    public List<CategoryResponseDTO> getAllCategories() {
-        Log.debugf("Getting all categories");
-
-        return categoryRepository.getAll()
+        return categoryRepository
+                .getAllByCompany(companyId)
                 .stream()
                 .map(categoryMapper::toResponseDTO)
                 .collect(Collectors.toList());
     }
 
-    public CategoryResponseDTO updateCategory(String name, @Valid CategoryRequestDTO categoryDTO) {
+    // --------------------------------------------------
+    // Get by ID
+    // --------------------------------------------------
+    public CategoryResponseDTO getCategoryById(
+            String companyId,
+            String categoryId
+    ) {
+        Category category =
+                categoryRepository.getByCompanyAndId(companyId, categoryId);
 
-        if (categoryDTO == null) {
-            throw new BadRequestException("Category request body is required");
+        if (category == null) {
+            throw new NotFoundException("Category not found");
         }
-
-        if (categoryDTO.getName() == null || categoryDTO.getName().isBlank()) {
-            throw new BadRequestException("Category name is required");
-        }
-
-        Category originalCategory = categoryRepository.getByName(name);
-        if (originalCategory == null) {
-            throw new NotFoundException("Category not found with name: " + name);
-        }
-
-        if (!name.equals(categoryDTO.getName())) {
-            Category existingWithNewName =
-                    categoryRepository.getByName(categoryDTO.getName());
-
-            if (existingWithNewName != null) {
-                throw new BadRequestException(
-                        "Category with name '" + categoryDTO.getName() + "' already exists"
-                );
-            }
-
-            categoryRepository.delete(name);
-        }
-
-        Category category = categoryMapper.toEntity(categoryDTO);
-        category.setCreatedAt(originalCategory.getCreatedAt());
-        category.setUpdatedAt(Instant.now());
-
-        categoryRepository.save(category);
-        Log.debugf("Updated category: %s", category.getName());
 
         return categoryMapper.toResponseDTO(category);
     }
 
-    public void deleteCategory(String name) {
-        Category category = categoryRepository.getByName(name);
-        if (category == null) {
-            throw new NotFoundException("Category not found with name: " + name);
+    // --------------------------------------------------
+    // Update
+    // --------------------------------------------------
+    public CategoryResponseDTO updateCategory(
+            String companyId,
+            String categoryId,
+            CategoryRequestDTO dto
+    ) {
+        if (dto == null) {
+            throw new BadRequestException("Request body is required");
         }
 
-        categoryRepository.delete(name);
-        Log.debugf("Deleted category: %s", name);
+        Category existing =
+                categoryRepository.getByCompanyAndId(companyId, categoryId);
+
+        if (existing == null) {
+            throw new NotFoundException("Category not found");
+        }
+
+        Category updated = categoryMapper.toEntity(dto);
+
+        // ---------- Preserve keys ----------
+        updated.setCompanyId(companyId);
+        updated.setCategoryId(categoryId);
+
+        // ---------- Preserve hierarchy ----------
+        updated.setParentCategoryId(existing.getParentCategoryId());
+        updated.setParentCategories(existing.getParentCategories());
+
+        // ---------- Preserve timestamps ----------
+        updated.setCreatedAt(existing.getCreatedAt());
+        updated.setUpdatedAt(Instant.now());
+
+        // ---------- Preserve defaults ----------
+        if (updated.getIsActive() == null) {
+            updated.setIsActive(existing.getIsActive());
+        }
+        if (updated.getDisplayOrder() == null) {
+            updated.setDisplayOrder(existing.getDisplayOrder());
+        }
+
+        categoryRepository.save(updated);
+
+        return categoryMapper.toResponseDTO(updated);
+    }
+
+    // --------------------------------------------------
+    // Delete
+    // --------------------------------------------------
+    public void deleteCategory(String companyId, String categoryId) {
+        Category existing =
+                categoryRepository.getByCompanyAndId(companyId, categoryId);
+
+        if (existing == null) {
+            throw new NotFoundException("Category not found");
+        }
+
+        categoryRepository.delete(companyId, categoryId);
     }
 }
