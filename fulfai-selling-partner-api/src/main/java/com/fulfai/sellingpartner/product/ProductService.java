@@ -13,6 +13,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.NotFoundException;
+import com.fulfai.sellingpartner.publicapi.dto.PublicProductDTO;
+
 
 @ApplicationScoped
 public class ProductService {
@@ -181,4 +183,146 @@ public class ProductService {
 
         return productCsvService.processCsvUpload(companyId, branchId, file);
     }
+
+    /* ============================
+   PUBLIC BROWSING (NO AUTH)
+============================ */
+
+public PaginatedResponse<PublicProductDTO> getPublicProductsByBranch(
+        String companyId,
+        String branchId,
+        String nextToken,
+        Integer limit
+) {
+
+    if (companyId == null || companyId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("companyId is required");
+    }
+    if (branchId == null || branchId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("branchId is required");
+    }
+
+    // safety defaults
+    int safeLimit = (limit == null || limit <= 0) ? 20 : Math.min(limit, 50);
+
+    PaginatedResponse<Product> response =
+            productRepository.getByBranch(companyId, branchId, nextToken, safeLimit);
+
+    return PaginatedResponse.<PublicProductDTO>builder()
+            .items(response.getItems().stream()
+                    .filter(p -> p.getIsActive() == null || Boolean.TRUE.equals(p.getIsActive()))
+                    .map(p -> {
+                        PublicProductDTO dto = new PublicProductDTO();
+                        dto.id = p.getProductId();
+                        dto.branchId = p.getBranchId();
+                        dto.categoryId = p.getCategory(); // your model uses "category" as String
+                        dto.name = p.getName();
+                        dto.description = p.getDescription();
+                        dto.price = p.getPrice();
+                        dto.image = p.getImageUrl();
+                        dto.isAvailable = true; // optionally calculate using stockQuantity
+                        return dto;
+                    })
+                    .collect(Collectors.toList()))
+            .nextToken(response.getNextToken())
+            .hasMore(response.isHasMore())
+            .build();
+}
+
+/* ============================
+   PUBLIC BROWSING BY CATEGORY (NO AUTH)
+============================ */
+
+public PaginatedResponse<PublicProductDTO> getPublicProductsByCategory(
+        String category,
+        String companyId,
+        String nextToken,
+        Integer limit
+) {
+
+    if (category == null || category.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("category is required");
+    }
+
+    int safeLimit = (limit == null || limit <= 0) ? 20 : Math.min(limit, 50);
+
+    PaginatedResponse<Product> response;
+
+    // If companyId is provided, filter category results by company
+    if (companyId != null && !companyId.isBlank()) {
+        response = productRepository.getByCategoryAndCompany(category, companyId, nextToken, safeLimit);
+    } else {
+        response = productRepository.getByCategory(category, nextToken, safeLimit);
+    }
+
+    return PaginatedResponse.<PublicProductDTO>builder()
+            .items(response.getItems().stream()
+                    .filter(p -> p.getIsActive() == null || Boolean.TRUE.equals(p.getIsActive()))
+                    .map(p -> {
+                        PublicProductDTO dto = new PublicProductDTO();
+                        dto.id = p.getProductId();
+                        dto.branchId = p.getBranchId();
+                        dto.categoryId = p.getCategory();
+                        dto.name = p.getName();
+                        dto.description = p.getDescription();
+                        dto.price = p.getPrice();
+                        dto.image = p.getImageUrl();
+                        dto.isAvailable = true;
+                        return dto;
+                    })
+                    .collect(Collectors.toList()))
+            .nextToken(response.getNextToken())
+            .hasMore(response.isHasMore())
+            .build();
+}
+public PublicProductDTO getPublicProductById(
+        String companyId,
+        String branchId,
+        String productId
+) {
+    if (companyId == null || companyId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("companyId is required");
+    }
+    if (branchId == null || branchId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("branchId is required");
+    }
+    if (productId == null || productId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("productId is required");
+    }
+
+    Log.debugf(
+            "Public get product by id: companyId=%s, branchId=%s, productId=%s",
+            companyId, branchId, productId
+    );
+
+    Product p = productRepository.getById(companyId, branchId, productId);
+
+    if (p == null) {
+        throw new NotFoundException("Product not found with id: " + productId);
+    }
+
+    // Public only returns active products
+    if (p.getIsActive() != null && Boolean.FALSE.equals(p.getIsActive())) {
+        throw new NotFoundException("Product not found with id: " + productId);
+    }
+
+    PublicProductDTO dto = new PublicProductDTO();
+    dto.id = p.getProductId();
+    //dto.c = p.getCompanyId();   // only if your PublicProductDTO has companyId field
+    dto.branchId = p.getBranchId();
+    dto.categoryId = p.getCategory();   // your model uses String category
+    dto.name = p.getName();
+    dto.description = p.getDescription();
+    dto.price = p.getPrice();
+    dto.image = p.getImageUrl();
+
+    // Optional: calculate availability based on stock
+    // If you want strict stock check:
+     dto.isAvailable = p.getStockQuantity() != null && p.getStockQuantity() > 0;
+   // dto.isAvailable = true;
+
+    return dto;
+}
+
+
 }

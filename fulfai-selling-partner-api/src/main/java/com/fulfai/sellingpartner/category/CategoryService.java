@@ -10,6 +10,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+import com.fulfai.sellingpartner.publicapi.dto.PublicCategoryDTO;
+
 
 @ApplicationScoped
 public class CategoryService {
@@ -184,4 +186,34 @@ public class CategoryService {
 
         categoryRepository.delete(companyId, categoryId);
     }
+
+    /* ============================
+   PUBLIC BROWSING (NO AUTH)
+============================ */
+
+public List<PublicCategoryDTO> getPublicCategories(String companyId) {
+
+    if (companyId == null || companyId.isBlank()) {
+        throw new BadRequestException("companyId is required");
+    }
+
+    return categoryRepository
+            .getAllByCompany(companyId)
+            .stream()
+            .filter(c -> c.getIsActive() == null || Boolean.TRUE.equals(c.getIsActive()))
+            .sorted((a, b) -> {
+                Integer ao = a.getDisplayOrder() == null ? 0 : a.getDisplayOrder();
+                Integer bo = b.getDisplayOrder() == null ? 0 : b.getDisplayOrder();
+                return ao.compareTo(bo);
+            })
+            .map(c -> {
+                PublicCategoryDTO dto = new PublicCategoryDTO();
+                dto.id = c.getCategoryId();
+                dto.name = c.getName();
+                dto.image = c.getImageUrl(); // if your entity has image field
+                return dto;
+            })
+            .collect(Collectors.toList());
+}
+
 }

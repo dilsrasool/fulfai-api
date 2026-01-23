@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -18,6 +19,8 @@ import io.quarkus.security.identity.SecurityIdentity;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRole;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRoleRepository;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRoleResponseDTO;
+import com.fulfai.sellingpartner.publicapi.dto.PublicCompanyDTO;
+
 
 @ApplicationScoped
 public class CompanyService {
@@ -284,4 +287,67 @@ public class CompanyService {
         if (userId.contains("@")) return userId;
         return "User-" + userId.substring(0, Math.min(6, userId.length()));
     }
+
+    /* ============================
+   PUBLIC BROWSING (NO AUTH)
+============================ */
+
+public List<PublicCompanyDTO> getPublicCompanies() {
+
+    // NOTE:
+    // This method is intentionally NOT using SecurityIdentity
+    // because it will be called by public browsing endpoints.
+    //
+
+    List<Company> companies = companyRepository.getAll(); // you must have this method
+
+    if (companies == null || companies.isEmpty()) {
+        return List.of();
+    }
+
+    return companies.stream()
+            .map(c -> {
+                PublicCompanyDTO dto = new PublicCompanyDTO();
+                dto.id = c.getId();
+                dto.name = c.getName();
+                dto.description = c.getDescription();
+                dto.logo = c.getLogo();
+
+                // Optional fields (if they exist in your entity)
+                // dto.category = c.getCategory();
+                // dto.rating = c.getRating();
+                dto.isOpen = true; // or calculate based on timings/branch status
+
+                return dto;
+            })
+            .collect(Collectors.toList());
+}
+
+/* ============================
+   PUBLIC COMPANY DETAILS (NO AUTH)
+============================ */
+
+public Optional<PublicCompanyDTO> getPublicCompanyById(String companyId) {
+
+    if (companyId == null || companyId.isBlank()) {
+        return Optional.empty();
+    }
+
+    Company c = companyRepository.getById(companyId);
+
+    if (c == null) {
+        return Optional.empty();
+    }
+
+    PublicCompanyDTO dto = new PublicCompanyDTO();
+    dto.id = c.getId();
+    dto.name = c.getName();
+    dto.description = c.getDescription();
+    dto.logo = c.getLogo();
+    dto.isOpen = true;
+
+    return Optional.of(dto);
+}
+
+
 }

@@ -12,6 +12,8 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.NotFoundException;
+import com.fulfai.sellingpartner.publicapi.dto.PublicBranchDTO;
+
 
 @ApplicationScoped
 public class BranchService {
@@ -114,4 +116,31 @@ public class BranchService {
             throw new NotFoundException("Branch not found with id: " + branchId);
         }
     }
+
+    /* ============================
+   PUBLIC BROWSING (NO AUTH)
+============================ */
+
+public List<PublicBranchDTO> getPublicBranches(String companyId) {
+
+    if (companyId == null || companyId.isBlank()) {
+        throw new jakarta.ws.rs.BadRequestException("companyId is required");
+    }
+
+    // reuse your existing method (already filters active)
+    List<BranchResponseDTO> activeBranches = getAllActiveBranchesByCompany(companyId);
+
+    return activeBranches.stream()
+            .map(b -> {
+                PublicBranchDTO dto = new PublicBranchDTO();
+                dto.id = b.getBranchId();      // branchId
+                dto.companyId = b.getCompanyId();
+                dto.name = b.getName();
+                dto.address = b.getAddress();
+                dto.isActive = b.getIsActive();
+                return dto;
+            })
+            .collect(Collectors.toList());
+}
+
 }

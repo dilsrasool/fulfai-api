@@ -27,15 +27,16 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
            🔓 PUBLIC ENDPOINTS (NO AUTH)
         ====================================================== */
 
-        // ✅ PUBLIC: Branch Active (browse portal without login)
-        if (path != null && path.equals("/api/selling-partner/branch/active")) {
-            Log.debugf("SECURITY_AUTH: Public endpoint → %s (anonymous identity)", path);
+   // ✅ PUBLIC BROWSING ENDPOINTS (NO AUTH)
+if (path != null && path.startsWith("/api/selling-partner/public/")) {
+    Log.debugf("SECURITY_AUTH: Public browsing endpoint → %s (anonymous identity)", path);
 
-            return QuarkusSecurityIdentity.builder()
-                    .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
-                    .addAttribute("auth_type", "PUBLIC")
-                    .build();
-        }
+    return QuarkusSecurityIdentity.builder()
+            .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
+            .addAttribute("auth_type", "PUBLIC")
+            .build();
+}
+
 
         // 🔓 PUBLIC EMAIL TOKEN ENDPOINTS (NO AUTH)
         if (path != null &&

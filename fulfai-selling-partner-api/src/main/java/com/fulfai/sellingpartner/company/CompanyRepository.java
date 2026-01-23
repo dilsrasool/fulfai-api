@@ -16,6 +16,8 @@ import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
 import software.amazon.awssdk.enhanced.dynamodb.Key;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
+
 
 @ApplicationScoped
 @RegisterForReflection
@@ -90,6 +92,25 @@ public class CompanyRepository {
         List<Company> companies = getAllByOwnerSub(ownerSub);
         return companies.isEmpty() ? null : companies.get(0);
     }
+
+    /* =========================
+   PUBLIC BROWSING
+   (SCAN - use pagination/limit later)
+   
+========================== */
+
+//TODO; paginate results (limit + lastEvaluatedKey) or use a GSI like isActive-index
+
+public List<Company> getAll() {
+
+    List<Company> results = new ArrayList<>();
+
+    table().scan(ScanEnhancedRequest.builder().build())
+            .forEach(page -> results.addAll(page.items()));
+
+    return results;
+}
+
 
     /* =========================
        OPTIONAL (Future)
