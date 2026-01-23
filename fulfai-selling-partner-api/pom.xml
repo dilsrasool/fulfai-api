@@ -16,16 +16,10 @@
     <description>Selling Partner API for FulfAI</description>
 
     <dependencies>
-        <!-- Common REST module -->
+        <!-- Internal module -->
         <dependency>
             <groupId>com.fulfai</groupId>
             <artifactId>fulfai-common-rest</artifactId>
-        </dependency>
-
-        <!-- Quarkus Lambda REST -->
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-amazon-lambda-rest</artifactId>
         </dependency>
 
         <!-- Quarkus Core -->
@@ -33,17 +27,24 @@
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-arc</artifactId>
         </dependency>
+
+        <!-- REST (Quarkus 3 - Reactive) -->
+      <dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-rest</artifactId>
+</dependency>
+
+<dependency>
+  <groupId>io.quarkus</groupId>
+  <artifactId>quarkus-rest-jackson</artifactId>
+</dependency>
+
+
+
+        <!-- Quarkus Lambda REST -->
         <dependency>
             <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.quarkus</groupId>
-            <artifactId>quarkus-resteasy-jsonb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
+            <artifactId>quarkus-amazon-lambda-rest</artifactId>
         </dependency>
 
         <!-- MapStruct & Lombok -->
@@ -52,6 +53,7 @@
             <artifactId>mapstruct</artifactId>
             <version>${org.mapstruct.version}</version>
         </dependency>
+
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
@@ -64,34 +66,47 @@
             <groupId>io.quarkiverse.amazonservices</groupId>
             <artifactId>quarkus-amazon-dynamodb</artifactId>
         </dependency>
+
         <dependency>
             <groupId>io.quarkiverse.amazonservices</groupId>
             <artifactId>quarkus-amazon-s3</artifactId>
         </dependency>
+
+        <dependency>
+            <groupId>io.quarkiverse.amazonservices</groupId>
+            <artifactId>quarkus-amazon-ses</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>dynamodb-enhanced</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>url-connection-client</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>apache-client</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>netty-nio-client</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>athena</artifactId>
         </dependency>
+
         <dependency>
             <groupId>software.amazon.awssdk</groupId>
             <artifactId>lambda</artifactId>
@@ -116,11 +131,13 @@
             <artifactId>kernel</artifactId>
             <version>7.2.5</version>
         </dependency>
+
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>layout</artifactId>
             <version>7.2.5</version>
         </dependency>
+
         <dependency>
             <groupId>com.itextpdf</groupId>
             <artifactId>io</artifactId>
@@ -133,51 +150,49 @@
             <artifactId>quarkus-junit5</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>io.quarkus</groupId>
             <artifactId>quarkus-junit5-mockito</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>io.rest-assured</groupId>
             <artifactId>rest-assured</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-core</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>testcontainers</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>junit-jupiter</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>org.testcontainers</groupId>
             <artifactId>localstack</artifactId>
             <scope>test</scope>
         </dependency>
+
         <dependency>
             <groupId>com.amazonaws</groupId>
             <artifactId>aws-java-sdk-core</artifactId>
             <version>${awssdk.testcontainers.version}</version>
             <scope>test</scope>
         </dependency>
-<dependency>
-    <groupId>io.quarkiverse.amazonservices</groupId>
-    <artifactId>quarkus-amazon-ses</artifactId>
-</dependency>
-
-
-
-
-
     </dependencies>
 
     <build>

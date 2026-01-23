@@ -1,7 +1,12 @@
 package com.fulfai.sellingpartner.product;
 
+import java.util.List;
+
 import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.common.dto.PaginationDTO;
+
+import org.jboss.resteasy.reactive.RestForm;
+import org.jboss.resteasy.reactive.multipart.FileUpload;
 
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
@@ -30,6 +35,7 @@ public class ProductResource {
     public Response createProduct(@PathParam("companyId") String companyId,
             @PathParam("branchId") String branchId,
             @Valid ProductRequestDTO request) {
+
         ProductResponseDTO createdProduct = productService.createProduct(companyId, branchId, request);
         return Response.status(Response.Status.CREATED).entity(createdProduct).build();
     }
@@ -39,9 +45,12 @@ public class ProductResource {
     public Response searchProducts(@PathParam("companyId") String companyId,
             @PathParam("branchId") String branchId,
             PaginationDTO request) {
+
         Integer limit = request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
+
         PaginatedResponse<ProductResponseDTO> products = productService.getProductsByBranch(
                 companyId, branchId, request.getNextToken(), limit);
+
         return Response.ok(products).build();
     }
 
@@ -50,9 +59,12 @@ public class ProductResource {
     public Response searchProductsByCategory(@PathParam("companyId") String companyId,
             @PathParam("branchId") String branchId,
             ProductSearchDTO request) {
+
         Integer limit = request.getLimit() != null ? request.getLimit() : DEFAULT_LIMIT;
+
         PaginatedResponse<ProductResponseDTO> products = productService.getProductsByCategoryAndCompany(
                 request.getCategory(), companyId, request.getNextToken(), limit);
+
         return Response.ok(products).build();
     }
 
@@ -61,6 +73,7 @@ public class ProductResource {
     public Response getProductById(@PathParam("companyId") String companyId,
             @PathParam("branchId") String branchId,
             @PathParam("productId") String productId) {
+
         ProductResponseDTO product = productService.getProductById(companyId, branchId, productId);
         return Response.ok(product).build();
     }
@@ -71,6 +84,7 @@ public class ProductResource {
             @PathParam("branchId") String branchId,
             @PathParam("productId") String productId,
             @Valid ProductRequestDTO request) {
+
         ProductResponseDTO product = productService.updateProduct(companyId, branchId, productId, request);
         return Response.ok(product).build();
     }
@@ -80,7 +94,20 @@ public class ProductResource {
     public Response deleteProduct(@PathParam("companyId") String companyId,
             @PathParam("branchId") String branchId,
             @PathParam("productId") String productId) {
+
         productService.deleteProduct(companyId, branchId, productId);
         return Response.noContent().build();
+    }
+
+    // ✅ MULTIPART CSV UPLOAD
+    @POST
+    @Path("/upload-csv")
+    @Consumes(MediaType.MULTIPART_FORM_DATA)
+    public Response uploadCsv(@PathParam("companyId") String companyId,
+            @PathParam("branchId") String branchId,
+            @RestForm("file") FileUpload file) {
+
+        ProductCsvUploadResponseDTO result = productService.uploadProductsFromCsv(companyId, branchId, file);
+        return Response.ok(result).build();
     }
 }

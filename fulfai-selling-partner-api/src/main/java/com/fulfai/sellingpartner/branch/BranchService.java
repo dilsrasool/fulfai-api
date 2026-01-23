@@ -1,6 +1,7 @@
 package com.fulfai.sellingpartner.branch;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -49,6 +50,29 @@ public class BranchService {
             throw new NotFoundException("Branch not found with id: " + branchId);
         }
     }
+
+        // ✅ NEW METHOD: Get all ACTIVE branches for a company (no pagination)
+    public List<BranchResponseDTO> getAllActiveBranchesByCompany(String companyId) {
+        Log.debugf("Getting ACTIVE branches for company: %s", companyId);
+
+        // Get all branches (paginate with a big limit OR your repository can have a dedicated method)
+        PaginatedResponse<Branch> response = branchRepository.getByCompanyId(companyId, null, 1000);
+
+        return response.getItems().stream()
+                .filter(branch -> Boolean.TRUE.equals(branch.getIsActive()))
+                .map(branchMapper::toResponseDTO)
+                .collect(Collectors.toList());
+    }
+//TODO: This endpoint scans the whole Branch table, so if branches grow a lot, you should add a GSI on isActive.
+    public List<BranchResponseDTO> getAllActiveBranchesAcrossAllCompanies() {
+        Log.debug("Getting ALL ACTIVE branches across ALL companies");
+
+        return branchRepository.getAllActiveBranchesAcrossAllCompanies()
+                .stream()
+                .map(branchMapper::toResponseDTO)
+                .toList();
+    }
+
 
     public PaginatedResponse<BranchResponseDTO> getBranchesByCompanyId(String companyId, String nextToken, Integer limit) {
         Log.debugf("Getting branches for company: %s", companyId);

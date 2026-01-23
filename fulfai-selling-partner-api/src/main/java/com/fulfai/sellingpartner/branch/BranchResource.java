@@ -32,6 +32,20 @@ public class BranchResource {
         return Response.status(Response.Status.CREATED).entity(createdBranch).build();
     }
 
+     // ✅ NEW ENDPOINT: Get all ACTIVE branches for a company
+    @GET
+    @Path("/active")
+    public Response getAllActiveBranchesByCompany(@PathParam("companyId") String companyId) {
+        return Response.ok(branchService.getAllActiveBranchesByCompany(companyId)).build();
+    }
+
+    @GET
+    @Path("/active/all")
+    public Response getAllActiveBranchesAcrossAllCompanies() {
+        return Response.ok(branchService.getAllActiveBranchesAcrossAllCompanies()).build();
+    }
+
+
     @POST
     @Path("/search")
     public Response searchBranches(@PathParam("companyId") String companyId, PaginationDTO request) {

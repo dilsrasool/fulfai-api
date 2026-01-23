@@ -6,6 +6,8 @@ import java.util.stream.Collectors;
 
 import com.fulfai.common.dto.PaginatedResponse;
 
+import org.jboss.resteasy.reactive.multipart.FileUpload;
+
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -20,6 +22,9 @@ public class ProductService {
 
     @Inject
     ProductMapper productMapper;
+
+    @Inject
+    ProductCsvService productCsvService;
 
     public ProductResponseDTO createProduct(String companyId, String branchId, @Valid ProductRequestDTO productDTO) {
         Product product = productMapper.toEntity(productDTO);
@@ -40,6 +45,9 @@ public class ProductService {
         if (product.getStockQuantity() == null) {
             product.setStockQuantity(0);
         }
+        if (product.getReorderLevel() == null) {
+            product.setReorderLevel(0);
+        }
 
         productRepository.save(product);
         Log.debugf("Created product with id: %s for company: %s, branch: %s", productId, companyId, branchId);
@@ -49,17 +57,20 @@ public class ProductService {
 
     public ProductResponseDTO getProductById(String companyId, String branchId, String productId) {
         Log.debugf("Getting product by companyId: %s, branchId: %s, productId: %s", companyId, branchId, productId);
+
         Product product = productRepository.getById(companyId, branchId, productId);
         if (product != null) {
             return productMapper.toResponseDTO(product);
-        } else {
-            throw new NotFoundException("Product not found with id: " + productId);
         }
+
+        throw new NotFoundException("Product not found with id: " + productId);
     }
 
     public PaginatedResponse<ProductResponseDTO> getProductsByBranch(String companyId, String branchId,
             String nextToken, Integer limit) {
+
         Log.debugf("Getting products for company: %s, branch: %s", companyId, branchId);
+
         PaginatedResponse<Product> response = productRepository.getByBranch(companyId, branchId, nextToken, limit);
 
         return PaginatedResponse.<ProductResponseDTO>builder()
@@ -73,7 +84,9 @@ public class ProductService {
 
     public PaginatedResponse<ProductResponseDTO> getProductsByCategory(String category,
             String nextToken, Integer limit) {
+
         Log.debugf("Getting products for category: %s", category);
+
         PaginatedResponse<Product> response = productRepository.getByCategory(category, nextToken, limit);
 
         return PaginatedResponse.<ProductResponseDTO>builder()
@@ -87,8 +100,11 @@ public class ProductService {
 
     public PaginatedResponse<ProductResponseDTO> getProductsByCategoryAndCompany(String category, String companyId,
             String nextToken, Integer limit) {
+
         Log.debugf("Getting products for category: %s, company: %s", category, companyId);
-        PaginatedResponse<Product> response = productRepository.getByCategoryAndCompany(category, companyId, nextToken, limit);
+
+        PaginatedResponse<Product> response = productRepository.getByCategoryAndCompany(category, companyId, nextToken,
+                limit);
 
         return PaginatedResponse.<ProductResponseDTO>builder()
                 .items(response.getItems().stream()
@@ -101,23 +117,48 @@ public class ProductService {
 
     public ProductResponseDTO updateProduct(String companyId, String branchId, String productId,
             @Valid ProductRequestDTO productDTO) {
+
         Product originalProduct = productRepository.getById(companyId, branchId, productId);
-        if (originalProduct != null) {
-            Product product = productMapper.toEntity(productDTO);
-            product.setCompanyId(companyId);
-            product.setBranchId(branchId);
-            product.setProductId(productId);
-            product.setBranchProductKey(branchId + "#" + productId);
-            product.setCreatedAt(originalProduct.getCreatedAt());
-            product.setUpdatedAt(Instant.now());
 
-            productRepository.save(product);
-            Log.debugf("Updated product with id: %s", productId);
-
-            return productMapper.toResponseDTO(product);
-        } else {
+        if (originalProduct == null) {
             throw new NotFoundException("Product not found with id: " + productId);
         }
+
+        originalProduct.setName(productDTO.getName());
+        originalProduct.setDescription(productDTO.getDescription());
+        originalProduct.setCategory(productDTO.getCategory());
+        originalProduct.setSku(productDTO.getSku());
+        originalProduct.setBarcode(productDTO.getBarcode());
+        originalProduct.setPrice(productDTO.getPrice());
+        originalProduct.setCostPrice(productDTO.getCostPrice());
+        originalProduct.setUnit(productDTO.getUnit());
+        originalProduct.setStockQuantity(productDTO.getStockQuantity());
+        originalProduct.setReorderLevel(productDTO.getReorderLevel());
+        originalProduct.setImageUrl(productDTO.getImageUrl());
+        originalProduct.setIsActive(productDTO.getIsActive());
+        originalProduct.setLongitude(productDTO.getLongitude());
+        originalProduct.setLatitude(productDTO.getLatitude());
+
+        originalProduct.setCompanyId(companyId);
+        originalProduct.setBranchId(branchId);
+        originalProduct.setProductId(productId);
+        originalProduct.setBranchProductKey(branchId + "#" + productId);
+        originalProduct.setUpdatedAt(Instant.now());
+
+        if (originalProduct.getIsActive() == null) {
+            originalProduct.setIsActive(true);
+        }
+        if (originalProduct.getStockQuantity() == null) {
+            originalProduct.setStockQuantity(0);
+        }
+        if (originalProduct.getReorderLevel() == null) {
+            originalProduct.setReorderLevel(0);
+        }
+
+        productRepository.save(originalProduct);
+        Log.debugf("Updated product with id: %s", productId);
+
+        return productMapper.toResponseDTO(originalProduct);
     }
 
     public void deleteProduct(String companyId, String branchId, String productId) {
@@ -125,8 +166,19 @@ public class ProductService {
         if (product != null) {
             productRepository.delete(companyId, branchId, productId);
             Log.debugf("Deleted product with id: %s", productId);
-        } else {
-            throw new NotFoundException("Product not found with id: " + productId);
+            return;
         }
+        throw new NotFoundException("Product not found with id: " + productId);
+    }
+
+    // ✅ MULTIPART CSV upload handler
+    public ProductCsvUploadResponseDTO uploadProductsFromCsv(String companyId, String branchId, FileUpload file) {
+        Log.debugf("Uploading products CSV for company: %s, branch: %s", companyId, branchId);
+
+        if (file == null) {
+            throw new IllegalArgumentException("CSV file is required");
+        }
+
+        return productCsvService.processCsvUpload(companyId, branchId, file);
     }
 }

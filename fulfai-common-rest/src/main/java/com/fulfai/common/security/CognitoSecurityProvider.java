@@ -19,11 +19,25 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
             AuthenticationRequestContext context
     ) {
 
-        String path = event.getPath();
+        String path = event != null ? event.getPath() : null;
+
+        Log.debugf("SECURITY_AUTH: Incoming path=%s", path);
 
         /* =====================================================
-           🔓 PUBLIC EMAIL TOKEN ENDPOINTS (NO AUTH)
+           🔓 PUBLIC ENDPOINTS (NO AUTH)
         ====================================================== */
+
+        // ✅ PUBLIC: Branch Active (browse portal without login)
+        if (path != null && path.equals("/api/selling-partner/branch/active")) {
+            Log.debugf("SECURITY_AUTH: Public endpoint → %s (anonymous identity)", path);
+
+            return QuarkusSecurityIdentity.builder()
+                    .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
+                    .addAttribute("auth_type", "PUBLIC")
+                    .build();
+        }
+
+        // 🔓 PUBLIC EMAIL TOKEN ENDPOINTS (NO AUTH)
         if (path != null &&
             (path.contains("/join-requests/approve-by-token")
           || path.contains("/join-requests/reject-by-token"))) {
@@ -75,7 +89,6 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
 
         Principal principal = new QuarkusPrincipal(sub);
 
-        // 🔥 THIS IS THE CRITICAL FIX
         return QuarkusSecurityIdentity.builder()
                 .setPrincipal(principal)
 

@@ -3,9 +3,9 @@ package com.fulfai.sellingpartner.product;
 import java.math.BigDecimal;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -14,7 +14,6 @@ import lombok.Data;
 @RegisterForReflection
 public class ProductRequestDTO {
 
-    @NotBlank(message = "Company name cannot be blank")
     @Size(max = 200, message = "Company name must be less than 200 characters")
     private String companyName;
 
@@ -39,7 +38,7 @@ public class ProductRequestDTO {
     private String barcode;
 
     @NotNull(message = "Price is required")
-    @Positive(message = "Price must be positive")
+    @DecimalMin(value = "0.01", message = "Price must be greater than 0")
     private BigDecimal price;
 
     @PositiveOrZero(message = "Cost price must be zero or positive")
