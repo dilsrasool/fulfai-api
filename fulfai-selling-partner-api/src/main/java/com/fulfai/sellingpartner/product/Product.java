@@ -17,14 +17,44 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortK
 @RegisterForReflection
 public class Product {
 
+    /* =========================
+       IMAGE STATUS
+    ========================= */
+
+    public enum ImageProcessingStatus {
+        NOT_UPLOADED,
+        UPLOADING,
+        PROCESSING,
+        COMPLETED,
+        FAILED
+    }
+
+    /* =========================
+       CONSTANTS
+    ========================= */
+
     public static final String CATEGORY_GSI = "category-index";
 
+    /* =========================
+       KEYS
+    ========================= */
+
     private String companyId;
-    private String branchProductKey; // branchId#productId (sort key)
+    private String branchProductKey; // branchId#productId
     private String branchId;
     private String productId;
+
+    /* =========================
+       COMPANY INFO (DENORMALIZED)
+    ========================= */
+
     private String companyName;
     private String companyLogo;
+
+    /* =========================
+       PRODUCT INFO
+    ========================= */
+
     private String name;
     private String description;
     private String category;
@@ -35,12 +65,35 @@ public class Product {
     private String unit;
     private Integer stockQuantity;
     private Integer reorderLevel;
+
+    /* =========================
+       IMAGE INFO
+    ========================= */
+
     private String imageUrl;
+    private String thumbnailUrl;
+    private ImageProcessingStatus imageProcessingStatus;
+    private String imageUploadId;
+    private String imageError;
+
+    /* =========================
+       STATUS / LOCATION
+    ========================= */
+
     private Boolean isActive;
     private Double longitude;
     private Double latitude;
+
+    /* =========================
+       TIMESTAMPS
+    ========================= */
+
     private Instant createdAt;
     private Instant updatedAt;
+
+    /* =========================
+       DYNAMODB MAPPINGS
+    ========================= */
 
     @DynamoDbPartitionKey
     @DynamoDbSecondarySortKey(indexNames = CATEGORY_GSI)
@@ -129,6 +182,26 @@ public class Product {
     @DynamoDbAttribute("imageUrl")
     public String getImageUrl() {
         return imageUrl;
+    }
+
+    @DynamoDbAttribute("thumbnailUrl")
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    @DynamoDbAttribute("imageProcessingStatus")
+    public ImageProcessingStatus getImageProcessingStatus() {
+        return imageProcessingStatus;
+    }
+
+    @DynamoDbAttribute("imageUploadId")
+    public String getImageUploadId() {
+        return imageUploadId;
+    }
+
+    @DynamoDbAttribute("imageError")
+    public String getImageError() {
+        return imageError;
     }
 
     @DynamoDbAttribute("isActive")
