@@ -1,8 +1,10 @@
 package com.fulfai.sellingpartner;
 
-import java.util.List;
+
 
 import org.eclipse.microprofile.config.inject.ConfigProperty;
+
+import com.fulfai.sellingpartner.infrastructure.bootstrap.MetricsTablesBootstrap;
 
 import io.quarkus.arc.profile.IfBuildProfile;
 import io.quarkus.logging.Log;
@@ -103,6 +105,10 @@ public class DevBootstrap {
         TableCreator.createCompanyJoinRequestTable(dynamoDbClient, companyJoinRequestTableName);
 
         Log.info("DynamoDB tables ready");
+
+        MetricsTablesBootstrap.createAll(dynamoDbClient);
+        Log.info("Analytics tables ready");
+
 
         /* ---------- S3 Buckets ---------- */
 
