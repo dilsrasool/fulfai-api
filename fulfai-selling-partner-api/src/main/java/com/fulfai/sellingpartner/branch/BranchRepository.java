@@ -51,6 +51,19 @@ public class BranchRepository {
         return branchList;
 }
 
+/* =========================================================
+   GET ALL BRANCHES FOR A COMPANY (no pagination)
+   Used by AnalyticsService
+========================================================= */
+public List<Branch> getAll(String companyId) {
+
+    Log.debugf("Fetching all branches for companyId=%s", companyId);
+
+    return getByCompanyId(companyId, null, null)
+            .getItems();
+}
+
+
 
     public void save(Branch branch) {
         DynamoDBUtils.putItem(getBranchTable(), branch);

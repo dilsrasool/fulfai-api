@@ -320,58 +320,112 @@ public static final TableSchema<Category> CATEGORY_SCHEMA =
                         .build();
 
         public static final TableSchema<Order> ORDER_SCHEMA = TableSchema.builder(Order.class)
-                        .newItemSupplier(Order::new)
-                        .addAttribute(String.class, a -> a.name("companyId")
-                                        .getter(Order::getCompanyId)
-                                        .setter(Order::setCompanyId)
-                                        .tags(StaticAttributeTags.primaryPartitionKey(),
-                                                        StaticAttributeTags.secondaryPartitionKey(Order.DATE_GSI)))
-                        .addAttribute(String.class, a -> a.name("orderId")
-                                        .getter(Order::getOrderId)
-                                        .setter(Order::setOrderId)
-                                        .tags(StaticAttributeTags.primarySortKey()))
-                        .addAttribute(Instant.class, a -> a.name("orderDate")
-                                        .getter(Order::getOrderDate)
-                                        .setter(Order::setOrderDate)
-                                        .tags(StaticAttributeTags.secondarySortKey(Order.DATE_GSI)))
-                        .addAttribute(String.class, a -> a.name("status")
-                                        .getter(Order::getStatus)
-                                        .setter(Order::setStatus))
-                        .addAttribute(String.class, a -> a.name("branchId")
-                                        .getter(Order::getBranchId)
-                                        .setter(Order::setBranchId))
-                        .addAttribute(EnhancedType.listOf(EnhancedType.documentOf(OrderItem.class, ORDER_ITEM_SCHEMA)),
-                                        a -> a.name("items")
-                                                        .getter(Order::getItems)
-                                                        .setter(Order::setItems))
-                        .addAttribute(BigDecimal.class, a -> a.name("subtotal")
-                                        .getter(Order::getSubtotal)
-                                        .setter(Order::setSubtotal))
-                        .addAttribute(BigDecimal.class, a -> a.name("taxAmount")
-                                        .getter(Order::getTaxAmount)
-                                        .setter(Order::setTaxAmount))
-                        .addAttribute(BigDecimal.class, a -> a.name("discountAmount")
-                                        .getter(Order::getDiscountAmount)
-                                        .setter(Order::setDiscountAmount))
-                        .addAttribute(BigDecimal.class, a -> a.name("totalAmount")
-                                        .getter(Order::getTotalAmount)
-                                        .setter(Order::setTotalAmount))
-                        .addAttribute(String.class, a -> a.name("paymentMethod")
-                                        .getter(Order::getPaymentMethod)
-                                        .setter(Order::setPaymentMethod))
-                        .addAttribute(String.class, a -> a.name("paymentStatus")
-                                        .getter(Order::getPaymentStatus)
-                                        .setter(Order::setPaymentStatus))
-                        .addAttribute(String.class, a -> a.name("notes")
-                                        .getter(Order::getNotes)
-                                        .setter(Order::setNotes))
-                        .addAttribute(Instant.class, a -> a.name("createdAt")
-                                        .getter(Order::getCreatedAt)
-                                        .setter(Order::setCreatedAt))
-                        .addAttribute(Instant.class, a -> a.name("updatedAt")
-                                        .getter(Order::getUpdatedAt)
-                                        .setter(Order::setUpdatedAt))
-                .build();
+        .newItemSupplier(Order::new)
+
+        // =========================
+        // PRIMARY KEY + DATE_GSI PK
+        // =========================
+
+        .addAttribute(String.class, a -> a.name("companyId")
+                .getter(Order::getCompanyId)
+                .setter(Order::setCompanyId)
+                .tags(
+                        StaticAttributeTags.primaryPartitionKey(),
+                        StaticAttributeTags.secondaryPartitionKey(Order.DATE_GSI)
+                ))
+
+        // =========================
+        // PRIMARY SORT KEY
+        // =========================
+
+        .addAttribute(String.class, a -> a.name("orderId")
+                .getter(Order::getOrderId)
+                .setter(Order::setOrderId)
+                .tags(StaticAttributeTags.primarySortKey()))
+
+        // =========================
+        // ✅ NEW ATTRIBUTE FOR CUSTOMER ORDERS
+        // USER_GSI PARTITION KEY
+        // =========================
+
+        .addAttribute(String.class, a -> a.name("userId")
+                .getter(Order::getUserId)
+                .setter(Order::setUserId)
+                .tags(
+                        StaticAttributeTags.secondaryPartitionKey(Order.USER_GSI)
+                ))
+
+        // =========================
+        // DATE_GSI SORT KEY
+        // USER_GSI SORT KEY
+        // =========================
+
+        .addAttribute(Instant.class, a -> a.name("orderDate")
+                .getter(Order::getOrderDate)
+                .setter(Order::setOrderDate)
+                .tags(
+                        StaticAttributeTags.secondarySortKey(Order.DATE_GSI),
+                        StaticAttributeTags.secondarySortKey(Order.USER_GSI)
+                ))
+
+        // =========================
+        // OTHER ATTRIBUTES (UNCHANGED)
+        // =========================
+
+        .addAttribute(String.class, a -> a.name("status")
+                .getter(Order::getStatus)
+                .setter(Order::setStatus))
+
+        .addAttribute(String.class, a -> a.name("branchId")
+                .getter(Order::getBranchId)
+                .setter(Order::setBranchId))
+
+        .addAttribute(
+                EnhancedType.listOf(
+                        EnhancedType.documentOf(OrderItem.class, ORDER_ITEM_SCHEMA)),
+                a -> a.name("items")
+                        .getter(Order::getItems)
+                        .setter(Order::setItems)
+        )
+
+        .addAttribute(BigDecimal.class, a -> a.name("subtotal")
+                .getter(Order::getSubtotal)
+                .setter(Order::setSubtotal))
+
+        .addAttribute(BigDecimal.class, a -> a.name("taxAmount")
+                .getter(Order::getTaxAmount)
+                .setter(Order::setTaxAmount))
+
+        .addAttribute(BigDecimal.class, a -> a.name("discountAmount")
+                .getter(Order::getDiscountAmount)
+                .setter(Order::setDiscountAmount))
+
+        .addAttribute(BigDecimal.class, a -> a.name("totalAmount")
+                .getter(Order::getTotalAmount)
+                .setter(Order::setTotalAmount))
+
+        .addAttribute(String.class, a -> a.name("paymentMethod")
+                .getter(Order::getPaymentMethod)
+                .setter(Order::setPaymentMethod))
+
+        .addAttribute(String.class, a -> a.name("paymentStatus")
+                .getter(Order::getPaymentStatus)
+                .setter(Order::setPaymentStatus))
+
+        .addAttribute(String.class, a -> a.name("notes")
+                .getter(Order::getNotes)
+                .setter(Order::setNotes))
+
+        .addAttribute(Instant.class, a -> a.name("createdAt")
+                .getter(Order::getCreatedAt)
+                .setter(Order::setCreatedAt))
+
+        .addAttribute(Instant.class, a -> a.name("updatedAt")
+                .getter(Order::getUpdatedAt)
+                .setter(Order::setUpdatedAt))
+
+        .build();
+
 
         public static final TableSchema<Account> ACCOUNT_SCHEMA = TableSchema.builder(Account.class)
                         .newItemSupplier(Account::new)

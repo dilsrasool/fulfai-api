@@ -23,85 +23,103 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
 
         Log.debugf("SECURITY_AUTH: Incoming path=%s", path);
 
+
+
         /* =====================================================
-           🔓 PUBLIC ENDPOINTS (NO AUTH)
+           ONLY THESE ENDPOINTS ARE PUBLIC
         ====================================================== */
 
-   // ✅ PUBLIC BROWSING ENDPOINTS (NO AUTH)
-if (path != null && path.startsWith("/api/selling-partner/public/")) {
-    Log.debugf("SECURITY_AUTH: Public browsing endpoint → %s (anonymous identity)", path);
-
-    return QuarkusSecurityIdentity.builder()
-            .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
-            .addAttribute("auth_type", "PUBLIC")
-            .build();
-}
-
-
-        // 🔓 PUBLIC EMAIL TOKEN ENDPOINTS (NO AUTH)
         if (path != null &&
-            (path.contains("/join-requests/approve-by-token")
-          || path.contains("/join-requests/reject-by-token"))) {
+                (
+                        path.startsWith("/api/selling-partner/public/products")
+                        || path.startsWith("/api/selling-partner/public/companies")
+                        || path.startsWith("/api/selling-partner/public/categories")
+                        || path.startsWith("/api/selling-partner/public/branches")
+                        || path.startsWith("/health")
+                )
+        ) {
 
             Log.debugf(
-                "SECURITY_AUTH: Public token endpoint → %s (anonymous identity)",
-                path
+                    "SECURITY_AUTH: Public browsing endpoint → %s",
+                    path
             );
 
             return QuarkusSecurityIdentity.builder()
                     .setPrincipal(new QuarkusPrincipal("ANONYMOUS"))
-                    .addAttribute("auth_type", "PUBLIC_TOKEN")
+                    .addAttribute("auth_type", "PUBLIC")
                     .build();
         }
 
+
+
         /* =====================================================
-           🔐 NORMAL AUTHENTICATED FLOW
+           AUTHENTICATED FLOW — REQUIRED FOR ORDERS
         ====================================================== */
 
-        if (event.getRequestContext() == null
-            || event.getRequestContext().getIdentity() == null) {
+        if (event == null
+                || event.getRequestContext() == null
+                || event.getRequestContext().getIdentity() == null) {
 
-            Log.debug("SECURITY_AUTH: No request identity found");
+            Log.debug("SECURITY_AUTH: No request identity");
+
             return null;
         }
+
 
         String cognitoIdentity =
                 event.getRequestContext()
-                     .getIdentity()
-                     .getCognitoAuthenticationProvider();
+                        .getIdentity()
+                        .getCognitoAuthenticationProvider();
+
 
         String authType =
                 event.getRequestContext()
-                     .getIdentity()
-                     .getCognitoAuthenticationType();
+                        .getIdentity()
+                        .getCognitoAuthenticationType();
 
-        String sub = CognitoUtils.extractSubFromString(cognitoIdentity);
+
+        String sub =
+                CognitoUtils.extractSubFromString(cognitoIdentity);
+
 
         Log.debugf(
-            "SECURITY_AUTH: sub=%s, authType=%s",
-            sub,
-            authType
+                "SECURITY_AUTH: sub=%s authType=%s",
+                sub,
+                authType
         );
 
+
         if (sub == null || sub.isBlank()) {
-            Log.debug("SECURITY_AUTH: No Cognito sub found, returning null");
+
+            Log.debug("SECURITY_AUTH: Invalid Cognito token");
+
             return null;
         }
 
-        Principal principal = new QuarkusPrincipal(sub);
+
+
+        /* =====================================================
+           SUCCESS AUTHENTICATION
+        ====================================================== */
+
+        Principal principal =
+                new QuarkusPrincipal(sub);
+
 
         return QuarkusSecurityIdentity.builder()
+
                 .setPrincipal(principal)
 
-                // legacy compatibility
                 .addAttribute("auth_type", authType)
 
-                // ✅ REQUIRED BY CompanyService
                 .addAttribute("sub", sub)
 
-                // optional (kept for debugging)
                 .addAttribute("cognito_sub", sub)
 
+                .addRole("customer")   // ⭐ IMPORTANT
+
                 .build();
+
     }
+
 }

@@ -268,51 +268,114 @@ public class TableCreator {
     ========================== */
 
     public static void createOrderTable(DynamoDbClient dynamoDbClient, String tableName) {
-        if (tableExists(dynamoDbClient, tableName)) return;
 
-        dynamoDbClient.createTable(builder -> builder
-            .tableName(tableName)
-            .keySchema(
-                KeySchemaElement.builder()
-                    .attributeName("companyId")
-                    .keyType(KeyType.HASH)
-                    .build(),
-                KeySchemaElement.builder()
-                    .attributeName("orderId")
-                    .keyType(KeyType.RANGE)
+    if (tableExists(dynamoDbClient, tableName)) return;
+
+    dynamoDbClient.createTable(builder -> builder
+
+        .tableName(tableName)
+
+        // =========================
+        // TABLE PRIMARY KEY
+        // =========================
+
+        .keySchema(
+
+            KeySchemaElement.builder()
+                .attributeName("companyId")
+                .keyType(KeyType.HASH)
+                .build(),
+
+            KeySchemaElement.builder()
+                .attributeName("orderId")
+                .keyType(KeyType.RANGE)
+                .build()
+        )
+
+        // =========================
+        // ATTRIBUTE DEFINITIONS
+        // =========================
+
+        .attributeDefinitions(
+
+            AttributeDefinition.builder()
+                .attributeName("companyId")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+
+            AttributeDefinition.builder()
+                .attributeName("orderId")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+
+            AttributeDefinition.builder()
+                .attributeName("orderDate")
+                .attributeType(ScalarAttributeType.S)
+                .build(),
+
+            // ✅ NEW ATTRIBUTE
+            AttributeDefinition.builder()
+                .attributeName("userId")
+                .attributeType(ScalarAttributeType.S)
+                .build()
+        )
+
+        // =========================
+        // GLOBAL SECONDARY INDEXES
+        // =========================
+
+        .globalSecondaryIndexes(
+
+            // EXISTING DATE INDEX
+
+            GlobalSecondaryIndex.builder()
+                .indexName(Order.DATE_GSI)
+                .keySchema(
+
+                    KeySchemaElement.builder()
+                        .attributeName("companyId")
+                        .keyType(KeyType.HASH)
+                        .build(),
+
+                    KeySchemaElement.builder()
+                        .attributeName("orderDate")
+                        .keyType(KeyType.RANGE)
+                        .build()
+                )
+                .projection(Projection.builder()
+                    .projectionType(ProjectionType.ALL)
                     .build())
-            .attributeDefinitions(
-                AttributeDefinition.builder()
-                    .attributeName("companyId")
-                    .attributeType(ScalarAttributeType.S)
-                    .build(),
-                AttributeDefinition.builder()
-                    .attributeName("orderId")
-                    .attributeType(ScalarAttributeType.S)
-                    .build(),
-                AttributeDefinition.builder()
-                    .attributeName("orderDate")
-                    .attributeType(ScalarAttributeType.S)
+                .build(),
+
+
+            // ✅ NEW USER INDEX
+
+            GlobalSecondaryIndex.builder()
+                .indexName(Order.USER_GSI)
+                .keySchema(
+
+                    KeySchemaElement.builder()
+                        .attributeName("userId")
+                        .keyType(KeyType.HASH)
+                        .build(),
+
+                    KeySchemaElement.builder()
+                        .attributeName("orderDate")
+                        .keyType(KeyType.RANGE)
+                        .build()
+                )
+                .projection(Projection.builder()
+                    .projectionType(ProjectionType.ALL)
                     .build())
-            .globalSecondaryIndexes(
-                GlobalSecondaryIndex.builder()
-                    .indexName(Order.DATE_GSI)
-                    .keySchema(
-                        KeySchemaElement.builder()
-                            .attributeName("companyId")
-                            .keyType(KeyType.HASH)
-                            .build(),
-                        KeySchemaElement.builder()
-                            .attributeName("orderDate")
-                            .keyType(KeyType.RANGE)
-                            .build())
-                    .projection(Projection.builder()
-                        .projectionType(ProjectionType.ALL)
-                        .build())
-                    .build())
-            .billingMode(BillingMode.PAY_PER_REQUEST)
-        );
-    }
+                .build()
+        )
+
+        // =========================
+
+        .billingMode(BillingMode.PAY_PER_REQUEST)
+    );
+}
+
 
     /* =========================
        ACCOUNT

@@ -48,6 +48,11 @@ public class OrderRepository {
         return getOrderTable().index(Order.DATE_GSI);
     }
 
+    private DynamoDbIndex<Order> getUserIndex() {
+    return getOrderTable().index(Order.USER_GSI);
+}
+
+
     public Order getById(String companyId, String orderId) {
         return DynamoDBUtils.getItem(getOrderTable(), companyId, orderId);
     }
@@ -61,6 +66,30 @@ public class OrderRepository {
         return DynamoDBUtils.queryGsiByPartitionKeyAndSortKeyBetween(
                 getDateIndex(), companyId, startDate, endDate, nextToken, limit);
     }
+
+    public PaginatedResponse<Order> getByUserId(
+        String userId,
+        String nextToken,
+        Integer limit
+) {
+
+    Log.debugf(
+            "Getting orders by userId: %s nextToken: %s limit: %s",
+            userId,
+            nextToken,
+            limit
+    );
+
+    return DynamoDBUtils.queryBySecondaryIndex(
+            getOrderTable(),
+            Order.USER_GSI,
+            userId,
+            nextToken,
+            limit
+    );
+}
+
+
 
     public void save(Order order) {
         DynamoDBUtils.putItem(getOrderTable(), order);
@@ -116,4 +145,6 @@ public class OrderRepository {
 
         dynamoDbClient.updateItem(request);
     }
+
+    
 }
