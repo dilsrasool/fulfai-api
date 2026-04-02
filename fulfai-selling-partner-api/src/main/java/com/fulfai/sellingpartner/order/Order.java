@@ -37,6 +37,8 @@ public class Order {
 
     private String userId;
 
+    private String deliveryAddress;
+
 
     // =========================
     // EXISTING FIELDS
@@ -101,6 +103,11 @@ public class Order {
     @DynamoDbAttribute("userId")
     public String getUserId() {
         return userId;
+    }
+
+    @DynamoDbAttribute("deliveryAddress")
+    public String getDeliveryAddress() {
+        return deliveryAddress;
     }
 
 

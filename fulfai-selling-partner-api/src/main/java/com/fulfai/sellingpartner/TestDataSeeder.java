@@ -12,7 +12,17 @@ $env:COMPANY_JOIN_REQUEST_TABLE="FulfAI-dev-CompanyJoinRequest"
 
 mvn clean compile exec:java "-Dexec.mainClass=com.fulfai.sellingpartner.TestDataSeeder"
 
+NOTE: This seeder directly accesses DynamoDB for testing purposes.
+For production API testing, use AuthenticatedApiClient instead.
 
+Authentication Rules for API Calls:
+- Retrieve current authenticated user's Cognito session
+- Extract accessToken (JWT)
+- Include in Authorization header: "Authorization: Bearer <accessToken>"
+- Refresh token if expired
+- Public endpoints (/api/selling-partner/public/*) don't require authentication
+- All other endpoints require authentication
+- Handle 401 responses by refreshing token and retrying
 
 */
 

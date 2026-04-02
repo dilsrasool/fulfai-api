@@ -63,6 +63,7 @@ public class OrderService {
         order.setCompanyId(request.companyId);
         order.setBranchId(request.branchId);
         order.setUserId(userId);
+        order.setDeliveryAddress(request.deliveryAddress);
         order.setOrderId(UUID.randomUUID().toString());
         order.setOrderDate(now);
         order.setStatus(DEFAULT_STATUS);
@@ -364,6 +365,9 @@ public OrderResponseDTO createOrder(
 
     Order order = orderMapper.toEntity(request);
 
+    if (request.getUserId() != null) {
+        order.setUserId(request.getUserId());
+    }
 
     Instant now = Instant.now();
 
@@ -452,7 +456,17 @@ public OrderResponseDTO updateOrder(
     Order updated =
             orderMapper.toEntity(request);
 
+    if (request.getUserId() != null) {
+        updated.setUserId(request.getUserId());
+    } else {
+        updated.setUserId(existing.getUserId());
+    }
 
+    if (request.getDeliveryAddress() != null) {
+        updated.setDeliveryAddress(request.getDeliveryAddress());
+    } else {
+        updated.setDeliveryAddress(existing.getDeliveryAddress());
+    }
 
     updated.setCompanyId(companyId);
 

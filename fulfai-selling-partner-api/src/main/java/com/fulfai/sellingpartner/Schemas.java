@@ -380,6 +380,10 @@ public static final TableSchema<Category> CATEGORY_SCHEMA =
                 .getter(Order::getBranchId)
                 .setter(Order::setBranchId))
 
+        .addAttribute(String.class, a -> a.name("deliveryAddress")
+                .getter(Order::getDeliveryAddress)
+                .setter(Order::setDeliveryAddress))
+
         .addAttribute(
                 EnhancedType.listOf(
                         EnhancedType.documentOf(OrderItem.class, ORDER_ITEM_SCHEMA)),

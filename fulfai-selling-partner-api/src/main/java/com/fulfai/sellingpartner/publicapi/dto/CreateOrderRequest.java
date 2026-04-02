@@ -13,6 +13,8 @@ public class CreateOrderRequest {
 
     public String branchId;
 
+    public String deliveryAddress;
+
     public List<OrderItemRequest> items;
 
 

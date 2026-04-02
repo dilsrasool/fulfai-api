@@ -13,6 +13,8 @@ public class OrderResponseDTO {
 
     private String companyId;
     private String orderId;
+    private String userId;
+    private String deliveryAddress;
     private Instant orderDate;
     private String status;
     private String branchId;
