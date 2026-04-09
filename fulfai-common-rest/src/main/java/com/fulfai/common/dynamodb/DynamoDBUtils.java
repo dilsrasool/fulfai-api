@@ -21,6 +21,7 @@ import software.amazon.awssdk.enhanced.dynamodb.model.GetItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.PutItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryConditional;
 import software.amazon.awssdk.enhanced.dynamodb.model.QueryEnhancedRequest;
+import software.amazon.awssdk.enhanced.dynamodb.model.ScanEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.TransactWriteItemsEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.UpdateItemEnhancedRequest;
 import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
@@ -121,6 +122,35 @@ public class DynamoDBUtils {
         return executeQuery(table, requestBuilder.build());
     }
 
+    public static <T> PaginatedResponse<T> queryByPartitionKeyAndSortKeyBeginsWith(
+            DynamoDbTable<T> table,
+            String partitionKey,
+            String sortKeyPrefix,
+            Expression filterExpression,
+            String nextToken,
+            Integer limit) {
+        Log.debugf("DYNAMODB_QUERY: table=%s, partitionKey=%s, sortKeyPrefix=%s, nextToken=%s, limit=%d, filtered=%b",
+                table.tableName(), partitionKey, sortKeyPrefix, nextToken, limit, filterExpression != null);
+
+        int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
+        QueryEnhancedRequest.Builder requestBuilder = QueryEnhancedRequest.builder()
+                .queryConditional(QueryConditional.sortBeginsWith(Key.builder()
+                        .partitionValue(partitionKey)
+                        .sortValue(sortKeyPrefix)
+                        .build()))
+                .limit(pageSize);
+
+        if (filterExpression != null) {
+            requestBuilder.filterExpression(filterExpression);
+        }
+
+        if (nextToken != null && !nextToken.isEmpty()) {
+            requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+        }
+
+        return executeQuery(table, requestBuilder.build());
+    }
+
     // Query by partition key and sort key between (with pagination)
     public static <T> PaginatedResponse<T> queryByPartitionKeyAndSortKeyBetween(DynamoDbTable<T> table,
             String partitionKey, String sortKeyStart, String sortKeyEnd, String nextToken, Integer limit) {
@@ -178,6 +208,21 @@ public class DynamoDBUtils {
         }
 
         return executeGsiQuery(index, requestBuilder.build());
+    }
+
+    public static <T> PaginatedResponse<T> scan(DynamoDbTable<T> table, String nextToken, Integer limit) {
+        Log.debugf("DYNAMODB_SCAN: table=%s, nextToken=%s, limit=%d",
+                table.tableName(), nextToken, limit);
+
+        int pageSize = limit != null ? limit : DEFAULT_PAGE_SIZE;
+        ScanEnhancedRequest.Builder requestBuilder = ScanEnhancedRequest.builder()
+                .limit(pageSize);
+
+        if (nextToken != null && !nextToken.isEmpty()) {
+            requestBuilder.exclusiveStartKey(decodeExclusiveStartKey(nextToken));
+        }
+
+        return executeScan(table, requestBuilder.build());
     }
 
     // Query GSI by partition key and sort key begins with (with pagination)
@@ -281,6 +326,27 @@ public class DynamoDBUtils {
         String nextTokenResult = encodeLastEvaluatedKey(lastKey);
         Log.debugf("DYNAMODB_QUERY_GSI_RESULT: index=%s, count=%d, hasMore=%b",
                 index.indexName(), items.size(), nextTokenResult != null);
+
+        return PaginatedResponse.<T>builder()
+                .items(items)
+                .nextToken(nextTokenResult)
+                .hasMore(nextTokenResult != null)
+                .build();
+    }
+
+    private static <T> PaginatedResponse<T> executeScan(DynamoDbTable<T> table, ScanEnhancedRequest request) {
+        List<T> items = new ArrayList<>();
+        Map<String, AttributeValue> lastKey = null;
+
+        for (Page<T> page : table.scan(request)) {
+            items.addAll(page.items());
+            lastKey = page.lastEvaluatedKey();
+            break;
+        }
+
+        String nextTokenResult = encodeLastEvaluatedKey(lastKey);
+        Log.debugf("DYNAMODB_SCAN_RESULT: table=%s, count=%d, hasMore=%b",
+                table.tableName(), items.size(), nextTokenResult != null);
 
         return PaginatedResponse.<T>builder()
                 .items(items)

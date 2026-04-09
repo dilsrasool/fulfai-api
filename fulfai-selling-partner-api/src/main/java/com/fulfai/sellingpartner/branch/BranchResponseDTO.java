@@ -18,7 +18,12 @@ public class BranchResponseDTO {
     private String phoneNumber;
     private String email;
     private String managerName;
+    private Double latitude;
+    private Double longitude;
+    private String geoHash5;
+    private String geoHash6;
     private Boolean isActive;
     private Instant createdAt;
+    private Instant locationUpdatedAt;
     private Instant updatedAt;
 }

@@ -12,5 +12,6 @@ public class PublicProductDTO {
     public String image;
     public Boolean isAvailable;
     public String companyId;
+    public Double distanceKm;
 
 }

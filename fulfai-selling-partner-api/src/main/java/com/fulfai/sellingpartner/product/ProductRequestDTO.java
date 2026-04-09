@@ -57,8 +57,4 @@ public class ProductRequestDTO {
     private String imageUrl;
 
     private Boolean isActive;
-
-    private Double longitude;
-
-    private Double latitude;
 }

@@ -36,5 +36,9 @@ public class BranchRequestDTO {
     @Size(max = 100, message = "Manager name must be less than 100 characters")
     private String managerName;
 
+    private Double latitude;
+
+    private Double longitude;
+
     private Boolean isActive;
 }

@@ -13,8 +13,10 @@ import jakarta.inject.Inject;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbEnhancedClient;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbIndex;
 import software.amazon.awssdk.enhanced.dynamodb.DynamoDbTable;
+import software.amazon.awssdk.enhanced.dynamodb.Expression;
 import software.amazon.awssdk.enhanced.dynamodb.model.BatchWriteItemEnhancedRequest;
 import software.amazon.awssdk.enhanced.dynamodb.model.WriteBatch;
+import software.amazon.awssdk.services.dynamodb.model.AttributeValue;
 
 import java.util.List;
 
@@ -49,10 +51,38 @@ public class ProductRepository {
         return DynamoDBUtils.queryByPartitionKey(getProductTable(), companyId, nextToken, limit);
     }
 
+    public PaginatedResponse<Product> scanAll(String nextToken, Integer limit) {
+        return DynamoDBUtils.scan(getProductTable(), nextToken, limit);
+    }
+
     public PaginatedResponse<Product> getByBranch(String companyId, String branchId, String nextToken, Integer limit) {
         return DynamoDBUtils.queryByPartitionKeyAndSortKeyBeginsWith(
                 getProductTable(), companyId, branchId + "#", nextToken, limit);
     }
+
+        public PaginatedResponse<Product> getByBranchAndKeyword(
+            String companyId,
+            String branchId,
+            String keyword,
+            String nextToken,
+            Integer limit
+        ) {
+        Expression filterExpression = Expression.builder()
+            .expression("contains(#name, :keyword) OR contains(#description, :keyword)")
+            .putExpressionName("#name", "name")
+            .putExpressionName("#description", "description")
+            .putExpressionValue(":keyword", AttributeValue.builder().s(keyword).build())
+            .build();
+
+        return DynamoDBUtils.queryByPartitionKeyAndSortKeyBeginsWith(
+            getProductTable(),
+            companyId,
+            branchId + "#",
+            filterExpression,
+            nextToken,
+            limit
+        );
+        }
 
     public PaginatedResponse<Product> getByCategory(String category, String nextToken, Integer limit) {
         return DynamoDBUtils.queryGsiByPartitionKey(getCategoryIndex(), category, nextToken, limit);

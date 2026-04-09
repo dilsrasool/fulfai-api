@@ -1,16 +1,21 @@
 package com.fulfai.sellingpartner.branch;
 
+import java.util.Comparator;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fulfai.common.dto.PaginatedResponse;
+import com.fulfai.common.location.GeoHashUtil;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
 import com.fulfai.sellingpartner.publicapi.dto.PublicBranchDTO;
 
@@ -32,6 +37,8 @@ public class BranchService {
         branch.setBranchId(UUID.randomUUID().toString());
         branch.setCreatedAt(now);
         branch.setUpdatedAt(now);
+
+        applyLocation(branch, branchDTO.getLatitude(), branchDTO.getLongitude(), now);
 
         if (branch.getIsActive() == null) {
             branch.setIsActive(true);
@@ -93,10 +100,21 @@ public class BranchService {
         Branch originalBranch = branchRepository.getById(companyId, branchId);
         if (originalBranch != null) {
             Branch branch = branchMapper.toEntity(branchDTO);
+            Instant now = Instant.now();
             branch.setCompanyId(companyId);
             branch.setBranchId(branchId);
             branch.setCreatedAt(originalBranch.getCreatedAt());
-            branch.setUpdatedAt(Instant.now());
+            branch.setUpdatedAt(now);
+
+            if (branchDTO.getLatitude() == null && branchDTO.getLongitude() == null) {
+                branch.setLatitude(originalBranch.getLatitude());
+                branch.setLongitude(originalBranch.getLongitude());
+                branch.setGeoHash5(originalBranch.getGeoHash5());
+                branch.setGeoHash6(originalBranch.getGeoHash6());
+                branch.setLocationUpdatedAt(originalBranch.getLocationUpdatedAt());
+            } else {
+                applyLocation(branch, branchDTO.getLatitude(), branchDTO.getLongitude(), now);
+            }
 
             branchRepository.save(branch);
             Log.debugf("Updated branch with id: %s", branchId);
@@ -131,16 +149,120 @@ public List<PublicBranchDTO> getPublicBranches(String companyId) {
     List<BranchResponseDTO> activeBranches = getAllActiveBranchesByCompany(companyId);
 
     return activeBranches.stream()
-            .map(b -> {
-                PublicBranchDTO dto = new PublicBranchDTO();
-                dto.id = b.getBranchId();      // branchId
-                dto.companyId = b.getCompanyId();
-                dto.name = b.getName();
-                dto.address = b.getAddress();
-                dto.isActive = b.getIsActive();
-                return dto;
-            })
+            .map(this::toPublicBranchDTO)
             .collect(Collectors.toList());
+}
+
+public List<PublicBranchDTO> getAllPublicActiveBranchesAcrossAllCompanies() {
+    return getAllActiveBranchesAcrossAllCompanies().stream()
+            .map(this::toPublicBranchDTO)
+            .collect(Collectors.toList());
+}
+
+public List<PublicBranchDTO> getNearbyPublicBranches(
+        String companyId,
+        Double latitude,
+        Double longitude,
+        Double radiusKm,
+        Integer limit
+) {
+
+    if (latitude == null || longitude == null) {
+        throw new BadRequestException("latitude and longitude are required");
+    }
+
+    double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
+    int safeLimit = limit == null || limit <= 0 ? 20 : Math.min(limit, 50);
+
+        return getNearbyBranchCandidates(companyId, latitude, longitude, safeRadiusKm).stream()
+            .map(branch -> {
+            PublicBranchDTO dto = toPublicBranchDTO(branch);
+            dto.distanceKm = GeoHashUtil.calculateDistance(
+                latitude,
+                longitude,
+                branch.getLatitude(),
+                branch.getLongitude()
+            );
+            return dto;
+            })
+            .sorted(Comparator.comparing(dto -> dto.distanceKm))
+            .limit(safeLimit)
+            .collect(Collectors.toList());
+    }
+
+    public List<BranchResponseDTO> getNearbyBranchCandidates(
+        String companyId,
+        Double latitude,
+        Double longitude,
+        Double radiusKm
+    ) {
+
+        if (latitude == null || longitude == null) {
+        throw new BadRequestException("latitude and longitude are required");
+        }
+
+        double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
+
+            String userGeoHash5 = GeoHashUtil.encode(latitude, longitude, 5);
+            Set<String> geoCandidates = new HashSet<>(GeoHashUtil.getNeighbors(userGeoHash5));
+
+            List<BranchResponseDTO> candidateBranches =
+            companyId != null && !companyId.isBlank()
+                ? getAllActiveBranchesByCompany(companyId)
+                : getAllActiveBranchesAcrossAllCompanies();
+
+        return candidateBranches.stream()
+                .filter(branch -> branch.getLatitude() != null && branch.getLongitude() != null)
+                .filter(branch -> {
+                if (branch.getGeoHash5() == null || branch.getGeoHash5().isBlank()) {
+                    return true;
+                }
+                return geoCandidates.contains(branch.getGeoHash5());
+                })
+            .filter(branch -> GeoHashUtil.calculateDistance(
+                latitude,
+                longitude,
+                branch.getLatitude(),
+                branch.getLongitude()) <= safeRadiusKm)
+            .sorted(Comparator.comparing(branch -> GeoHashUtil.calculateDistance(
+                latitude,
+                longitude,
+                branch.getLatitude(),
+                branch.getLongitude())))
+            .collect(Collectors.toList());
+}
+
+private void applyLocation(Branch branch, Double latitude, Double longitude, Instant now) {
+    if (latitude == null && longitude == null) {
+        branch.setLatitude(null);
+        branch.setLongitude(null);
+        branch.setGeoHash5(null);
+        branch.setGeoHash6(null);
+        branch.setLocationUpdatedAt(null);
+        return;
+    }
+
+    if (latitude == null || longitude == null) {
+        throw new BadRequestException("latitude and longitude must both be provided");
+    }
+
+    branch.setLatitude(latitude);
+    branch.setLongitude(longitude);
+    branch.setGeoHash5(GeoHashUtil.encode(latitude, longitude, 5));
+    branch.setGeoHash6(GeoHashUtil.encode(latitude, longitude, 6));
+    branch.setLocationUpdatedAt(now);
+}
+
+private PublicBranchDTO toPublicBranchDTO(BranchResponseDTO branch) {
+    PublicBranchDTO dto = new PublicBranchDTO();
+    dto.id = branch.getBranchId();
+    dto.companyId = branch.getCompanyId();
+    dto.name = branch.getName();
+    dto.address = branch.getAddress();
+    dto.latitude = branch.getLatitude();
+    dto.longitude = branch.getLongitude();
+    dto.isActive = branch.getIsActive();
+    return dto;
 }
 
 }

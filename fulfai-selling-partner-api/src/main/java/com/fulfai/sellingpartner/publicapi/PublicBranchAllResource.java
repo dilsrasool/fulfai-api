@@ -22,18 +22,6 @@ public class PublicBranchAllResource {
 
     @GET
     public List<PublicBranchDTO> getAllActiveBranches() {
-        // you already have this service method
-        return branchService.getAllActiveBranchesAcrossAllCompanies()
-                .stream()
-                .map(b -> {
-                    PublicBranchDTO dto = new PublicBranchDTO();
-                    dto.id = b.getBranchId();
-                    dto.companyId = b.getCompanyId();
-                    dto.name = b.getName();
-                    dto.address = b.getAddress();
-                    dto.isActive = b.getIsActive();
-                    return dto;
-                })
-                .toList();
+        return branchService.getAllPublicActiveBranchesAcrossAllCompanies();
     }
 }

@@ -136,9 +136,6 @@ public class ProductCsvService {
         Boolean isActive = parseBooleanOptional(getString(cols, headerIndex, "isActive"));
         p.setIsActive(isActive != null ? isActive : true);
 
-        p.setLongitude(parseDoubleOptional(getString(cols, headerIndex, "longitude")));
-        p.setLatitude(parseDoubleOptional(getString(cols, headerIndex, "latitude")));
-
         p.setCreatedAt(now);
         p.setUpdatedAt(now);
 
@@ -194,17 +191,6 @@ public class ProductCsvService {
             return Integer.parseInt(value.trim());
         } catch (Exception e) {
             throw new IllegalArgumentException("Invalid integer value: " + value);
-        }
-    }
-
-    private Double parseDoubleOptional(String value) {
-        if (value == null || value.isBlank()) {
-            return null;
-        }
-        try {
-            return Double.parseDouble(value.trim());
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Invalid decimal value: " + value);
         }
     }
 

@@ -14,6 +14,8 @@ import software.amazon.awssdk.enhanced.dynamodb.mapper.annotations.DynamoDbSortK
 @RegisterForReflection
 public class Branch {
 
+    public static final String GEOHASH5_GSI = "geoHash5-index";
+
     private String companyId;
     private String branchId;
     private String name;
@@ -23,8 +25,13 @@ public class Branch {
     private String phoneNumber;
     private String email;
     private String managerName;
+    private Double latitude;
+    private Double longitude;
+    private String geoHash5;
+    private String geoHash6;
     private Boolean isActive;
     private Instant createdAt;
+    private Instant locationUpdatedAt;
     private Instant updatedAt;
 
     @DynamoDbPartitionKey
@@ -74,6 +81,26 @@ public class Branch {
         return managerName;
     }
 
+    @DynamoDbAttribute("latitude")
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    @DynamoDbAttribute("longitude")
+    public Double getLongitude() {
+        return longitude;
+    }
+
+    @DynamoDbAttribute("geoHash5")
+    public String getGeoHash5() {
+        return geoHash5;
+    }
+
+    @DynamoDbAttribute("geoHash6")
+    public String getGeoHash6() {
+        return geoHash6;
+    }
+
     @DynamoDbAttribute("isActive")
     public Boolean getIsActive() {
         return isActive;
@@ -82,6 +109,11 @@ public class Branch {
     @DynamoDbAttribute("createdAt")
     public Instant getCreatedAt() {
         return createdAt;
+    }
+
+    @DynamoDbAttribute("locationUpdatedAt")
+    public Instant getLocationUpdatedAt() {
+        return locationUpdatedAt;
     }
 
     @DynamoDbAttribute("updatedAt")

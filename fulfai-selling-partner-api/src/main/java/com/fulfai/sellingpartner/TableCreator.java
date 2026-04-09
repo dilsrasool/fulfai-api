@@ -1,6 +1,7 @@
 package com.fulfai.sellingpartner;
 
 
+import com.fulfai.sellingpartner.branch.Branch;
 import com.fulfai.sellingpartner.category.Category;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.product.Product;
@@ -142,6 +143,22 @@ public class TableCreator {
                 AttributeDefinition.builder()
                     .attributeName("branchId")
                     .attributeType(ScalarAttributeType.S)
+                    .build(),
+                AttributeDefinition.builder()
+                    .attributeName("geoHash5")
+                    .attributeType(ScalarAttributeType.S)
+                    .build())
+            .globalSecondaryIndexes(
+                GlobalSecondaryIndex.builder()
+                    .indexName(Branch.GEOHASH5_GSI)
+                    .keySchema(
+                        KeySchemaElement.builder()
+                            .attributeName("geoHash5")
+                            .keyType(KeyType.HASH)
+                            .build())
+                    .projection(Projection.builder()
+                        .projectionType(ProjectionType.ALL)
+                        .build())
                     .build())
             .billingMode(BillingMode.PAY_PER_REQUEST)
         );

@@ -5,5 +5,8 @@ public class PublicBranchDTO {
     public String companyId;
     public String name;
     public String address;
+    public Double latitude;
+    public Double longitude;
+    public Double distanceKm;
     public Boolean isActive;
 }

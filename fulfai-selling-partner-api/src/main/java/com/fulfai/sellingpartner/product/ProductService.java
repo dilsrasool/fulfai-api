@@ -1,10 +1,19 @@
 package com.fulfai.sellingpartner.product;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import com.fulfai.common.dto.PaginatedResponse;
+import com.fulfai.common.location.GeoHashUtil;
+import com.fulfai.sellingpartner.branch.BranchResponseDTO;
+import com.fulfai.sellingpartner.branch.BranchService;
 import com.fulfai.sellingpartner.publicapi.dto.PublicProductDTO;
 
 import org.jboss.resteasy.reactive.multipart.FileUpload;
@@ -13,10 +22,16 @@ import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
+
+
 
 @ApplicationScoped
 public class ProductService {
+
+        private static final int DEFAULT_PUBLIC_LIMIT = 20;
+        private static final int MAX_PUBLIC_LIMIT = 50;
 
     @Inject
     ProductRepository productRepository;
@@ -26,6 +41,9 @@ public class ProductService {
 
     @Inject
     ProductCsvService productCsvService;
+
+        @Inject
+        BranchService branchService;
 
     /* =========================
        CREATE
@@ -180,8 +198,6 @@ public class ProductService {
         product.setStockQuantity(productDTO.getStockQuantity());
         product.setReorderLevel(productDTO.getReorderLevel());
         product.setIsActive(productDTO.getIsActive());
-        product.setLongitude(productDTO.getLongitude());
-        product.setLatitude(productDTO.getLatitude());
         product.setImageUrl(productDTO.getImageUrl());
         product.setUpdatedAt(Instant.now());
 
@@ -301,35 +317,209 @@ public class ProductService {
             Integer limit
     ) {
 
-        int safeLimit = (limit == null || limit <= 0)
-                ? 20
-                : Math.min(limit, 50);
+        int safeLimit = safePublicLimit(limit);
 
         PaginatedResponse<Product> response =
                 productRepository.getByBranch(
                         companyId, branchId, nextToken, safeLimit
                 );
 
+        return toPublicProductResponse(response);
+    }
+
+    public PaginatedResponse<PublicProductDTO> searchPublicProductsByKeyword(
+            String companyId,
+            String branchId,
+            String keyword,
+            String nextToken,
+            Integer limit
+    ) {
+
+        if (keyword == null || keyword.isBlank()) {
+            throw new BadRequestException("keyword is required");
+        }
+
+        int safeLimit = safePublicLimit(limit);
+
+        String normalizedKeyword = keyword.toLowerCase(Locale.ROOT).trim();
+        List<Product> matchedProducts = new ArrayList<>();
+        String currentNextToken = nextToken;
+        boolean hasMore = false;
+        int totalScanned = 0;
+
+        boolean hasCompanyId = companyId != null && !companyId.isBlank();
+        boolean hasBranchId = branchId != null && !branchId.isBlank();
+
+        String searchScope = hasCompanyId && hasBranchId ? "branch"
+                : hasCompanyId ? "company"
+                : "global";
+
+        Log.debugf(
+                "PRODUCT_SEARCH_START: keyword='%s' normalizedKeyword='%s' scope=%s companyId=%s branchId=%s safeLimit=%d",
+                keyword, normalizedKeyword, searchScope, companyId, branchId, safeLimit
+        );
+
+        while (matchedProducts.size() < safeLimit) {
+            PaginatedResponse<Product> response;
+
+            if (hasCompanyId && hasBranchId) {
+                response = productRepository.getByBranch(
+                        companyId,
+                        branchId,
+                        currentNextToken,
+                        1
+                );
+            } else if (hasCompanyId) {
+                response = productRepository.getByCompanyId(
+                        companyId,
+                        currentNextToken,
+                        1
+                );
+            } else {
+                response = productRepository.scanAll(
+                        currentNextToken,
+                        1
+                );
+            }
+
+            if (response.getItems() == null || response.getItems().isEmpty()) {
+                Log.debugf(
+                        "PRODUCT_SEARCH_EXHAUSTED: totalScanned=%d matched=%d",
+                        totalScanned, matchedProducts.size()
+                );
+                currentNextToken = null;
+                hasMore = false;
+                break;
+            }
+
+            Product product = response.getItems().get(0);
+            totalScanned++;
+
+            boolean branchMatch = matchesBranch(product, branchId);
+            boolean activeMatch = product.getIsActive() == null || Boolean.TRUE.equals(product.getIsActive());
+            boolean keywordMatch = matchesKeyword(product, normalizedKeyword);
+
+            Log.debugf(
+                    "PRODUCT_SEARCH_EVAL: productId=%s name='%s' active=%s branchMatch=%b activeMatch=%b keywordMatch=%b",
+                    product.getProductId(), product.getName(), product.getIsActive(),
+                    branchMatch, activeMatch, keywordMatch
+            );
+
+            if (branchMatch && activeMatch && keywordMatch) {
+                matchedProducts.add(product);
+                Log.debugf(
+                        "PRODUCT_SEARCH_HIT: productId=%s name='%s' matchedSoFar=%d",
+                        product.getProductId(), product.getName(), matchedProducts.size()
+                );
+            }
+
+            currentNextToken = response.getNextToken();
+            hasMore = response.isHasMore();
+
+            if (!hasMore || currentNextToken == null) {
+    Log.debugf(
+    "PRODUCT_SEARCH_END: totalScanned=%d matched=%d hasMore=%b",
+    (Object) totalScanned, (Object) matchedProducts.size(), (Object) hasMore
+);
+                break;
+            }
+        }
+
+        Log.debugf(
+                "PRODUCT_SEARCH_RESULT: keyword='%s' totalScanned=%d matched=%d hasMore=%b",
+                keyword, totalScanned, matchedProducts.size(), hasMore
+        );
+
+        return PaginatedResponse.<PublicProductDTO>builder()
+                .items(matchedProducts.stream()
+                        .map(this::toPublicProductDTO)
+                        .collect(Collectors.toList()))
+                .nextToken(currentNextToken)
+                .hasMore(hasMore)
+                .build();
+    }
+
+        private boolean matchesBranch(Product product, String branchId) {
+                return branchId == null || branchId.isBlank() || branchId.equals(product.getBranchId());
+        }
+
+    private boolean matchesKeyword(Product product, String normalizedKeyword) {
+        String productName = product.getName() == null
+                ? ""
+                : product.getName().toLowerCase(Locale.ROOT);
+
+        String productDescription = product.getDescription() == null
+                ? ""
+                : product.getDescription().toLowerCase(Locale.ROOT);
+
+        return productName.contains(normalizedKeyword)
+                || productDescription.contains(normalizedKeyword);
+    }
+
+    private PaginatedResponse<PublicProductDTO> toPublicProductResponse(
+            PaginatedResponse<Product> response
+    ) {
         return PaginatedResponse.<PublicProductDTO>builder()
                 .items(response.getItems().stream()
                         .filter(p -> p.getIsActive() == null || Boolean.TRUE.equals(p.getIsActive()))
-                        .map(p -> {
-                            PublicProductDTO dto = new PublicProductDTO();
-                            dto.id = p.getProductId();
-                            dto.branchId = p.getBranchId();
-                            dto.categoryId = p.getCategory();
-                            dto.name = p.getName();
-                            dto.description = p.getDescription();
-                            dto.price = p.getPrice();
-                            dto.image = p.getImageUrl();
-                            dto.isAvailable =
-                                    p.getStockQuantity() != null && p.getStockQuantity() > 0;
-                            return dto;
-                        })
+                        .map(this::toPublicProductDTO)
                         .collect(Collectors.toList()))
                 .nextToken(response.getNextToken())
                 .hasMore(response.isHasMore())
                 .build();
+    }
+
+    public List<PublicProductDTO> getNearbyPublicProducts(
+            String companyId,
+            Double latitude,
+            Double longitude,
+            Double radiusKm,
+            Integer limit
+    ) {
+
+        if (latitude == null || longitude == null) {
+            throw new BadRequestException("latitude and longitude are required");
+        }
+
+        double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
+        int safeLimit = safePublicLimit(limit);
+
+        List<BranchResponseDTO> nearbyBranches =
+                branchService.getNearbyBranchCandidates(companyId, latitude, longitude, safeRadiusKm);
+
+        List<ProductDistance> nearbyProducts = new ArrayList<>();
+        Set<String> seenProductIds = new HashSet<>();
+
+        for (BranchResponseDTO branch : nearbyBranches) {
+            PaginatedResponse<Product> response =
+                    productRepository.getByBranch(branch.getCompanyId(), branch.getBranchId(), null, 100);
+
+            for (Product product : response.getItems()) {
+                if (Boolean.FALSE.equals(product.getIsActive())) {
+                    continue;
+                }
+
+                if (!seenProductIds.add(product.getCompanyId() + "#" + product.getBranchId() + "#" + product.getProductId())) {
+                    continue;
+                }
+
+                PublicProductDTO dto = toPublicProductDTO(product);
+                dto.distanceKm = GeoHashUtil.calculateDistance(
+                        latitude,
+                        longitude,
+                        branch.getLatitude(),
+                        branch.getLongitude()
+                );
+                nearbyProducts.add(new ProductDistance(dto, dto.distanceKm));
+            }
+        }
+
+        return nearbyProducts.stream()
+                .sorted(Comparator.comparing(ProductDistance::distanceKm)
+                        .thenComparing(pd -> pd.product().name, String.CASE_INSENSITIVE_ORDER))
+                .limit(safeLimit)
+                .map(ProductDistance::product)
+                .collect(Collectors.toList());
     }
 
     public PaginatedResponse<PublicProductDTO> getPublicProductsByCategory(
@@ -339,9 +529,7 @@ public class ProductService {
             Integer limit
     ) {
 
-        int safeLimit = (limit == null || limit <= 0)
-                ? 20
-                : Math.min(limit, 50);
+        int safeLimit = safePublicLimit(limit);
 
         PaginatedResponse<Product> response =
                 (companyId != null && !companyId.isBlank())
@@ -386,17 +574,29 @@ public class ProductService {
             throw new NotFoundException("Product not found with id: " + productId);
         }
 
-        PublicProductDTO dto = new PublicProductDTO();
-        dto.id = p.getProductId();
-        dto.branchId = p.getBranchId();
-        dto.categoryId = p.getCategory();
-        dto.name = p.getName();
-        dto.description = p.getDescription();
-        dto.price = p.getPrice();
-        dto.image = p.getImageUrl();
-        dto.isAvailable =
-                p.getStockQuantity() != null && p.getStockQuantity() > 0;
-
-        return dto;
+                return toPublicProductDTO(p);
     }
+
+            private PublicProductDTO toPublicProductDTO(Product p) {
+                PublicProductDTO dto = new PublicProductDTO();
+                dto.id = p.getProductId();
+                dto.branchId = p.getBranchId();
+                dto.categoryId = p.getCategory();
+                dto.name = p.getName();
+                dto.description = p.getDescription();
+                dto.price = p.getPrice();
+                dto.image = p.getImageUrl();
+                dto.isAvailable =
+                        p.getStockQuantity() != null && p.getStockQuantity() > 0;
+                dto.companyId = p.getCompanyId();
+                return dto;
+            }
+
+            private int safePublicLimit(Integer limit) {
+                return (limit == null || limit <= 0)
+                        ? DEFAULT_PUBLIC_LIMIT
+                        : Math.min(limit, MAX_PUBLIC_LIMIT);
+            }
+
+            private record ProductDistance(PublicProductDTO product, Double distanceKm) {}
 }

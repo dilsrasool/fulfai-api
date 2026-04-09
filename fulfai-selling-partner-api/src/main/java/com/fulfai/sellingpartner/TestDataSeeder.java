@@ -44,6 +44,7 @@ import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.order.OrderItem;
 import com.fulfai.sellingpartner.product.Product;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRole;
+import com.fulfai.common.location.GeoHashUtil;
 
 import software.amazon.awssdk.auth.credentials.AwsBasicCredentials;
 import software.amazon.awssdk.auth.credentials.StaticCredentialsProvider;
@@ -212,6 +213,7 @@ public class TestDataSeeder {
 
     private static Branch makeBranch(String companyId, String name, String city, String country) {
         Branch b = new Branch();
+        Instant now = Instant.now();
         b.setCompanyId(companyId);
         b.setBranchId("br-" + uuid8());
         b.setName(name);
@@ -221,9 +223,15 @@ public class TestDataSeeder {
         b.setPhoneNumber("+0000000000");
         b.setEmail(name.toLowerCase().replace(" ", "") + "@example.com");
         b.setManagerName(randomFrom(List.of("Ali", "Sara", "John", "Fatima", "Omar")) + " Manager");
+        double[] coords = cityCoordinates(city);
+        b.setLatitude(coords[0]);
+        b.setLongitude(coords[1]);
+        b.setGeoHash5(GeoHashUtil.encode(coords[0], coords[1], 5));
+        b.setGeoHash6(GeoHashUtil.encode(coords[0], coords[1], 6));
         b.setIsActive(true);
-        b.setCreatedAt(Instant.now());
-        b.setUpdatedAt(Instant.now());
+        b.setCreatedAt(now);
+        b.setLocationUpdatedAt(now);
+        b.setUpdatedAt(now);
         return b;
     }
 
@@ -380,9 +388,6 @@ public class TestDataSeeder {
                     p.setReorderLevel(5 + R.nextInt(25));
                     p.setImageUrl("https://dummycdn.com/product/" + productId + ".png");
                     p.setIsActive(true);
-
-                    p.setLatitude(24.7136);
-                    p.setLongitude(46.6753);
 
                     p.setCreatedAt(Instant.now());
                     p.setUpdatedAt(Instant.now());
@@ -610,5 +615,14 @@ public class TestDataSeeder {
     private static BigDecimal money(int min, int max) {
         int val = min + R.nextInt((max - min) + 1);
         return BigDecimal.valueOf(val).setScale(2, BigDecimal.ROUND_HALF_UP);
+    }
+
+    private static double[] cityCoordinates(String city) {
+        return switch (city.toLowerCase()) {
+            case "dubai" -> new double[]{25.2048, 55.2708};
+            case "riyadh" -> new double[]{24.7136, 46.6753};
+            case "karachi" -> new double[]{24.8607, 67.0011};
+            default -> new double[]{24.7136, 46.6753};
+        };
     }
 }
