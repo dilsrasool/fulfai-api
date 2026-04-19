@@ -3,6 +3,7 @@ package com.fulfai.sellingpartner.branch;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -39,6 +40,21 @@ public class BranchRequestDTO {
     private Double latitude;
 
     private Double longitude;
+
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "regularOpeningTime must be in HH:mm format")
+    private String regularOpeningTime;
+
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "regularClosingTime must be in HH:mm format")
+    private String regularClosingTime;
+
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "dayOpeningTime must be in HH:mm format")
+    private String dayOpeningTime;
+
+    @Pattern(regexp = "^([01]\\d|2[0-3]):[0-5]\\d$", message = "dayClosingTime must be in HH:mm format")
+    private String dayClosingTime;
+
+    @Pattern(regexp = "^\\d{4}-\\d{2}-\\d{2}$", message = "dayScheduleDate must be in yyyy-MM-dd format")
+    private String dayScheduleDate;
 
     private Boolean isActive;
 }

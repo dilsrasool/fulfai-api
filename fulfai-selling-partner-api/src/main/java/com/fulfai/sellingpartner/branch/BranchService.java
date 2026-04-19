@@ -2,6 +2,9 @@ package com.fulfai.sellingpartner.branch;
 
 import java.util.Comparator;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -30,6 +33,7 @@ public class BranchService {
     BranchMapper branchMapper;
 
     public BranchResponseDTO createBranch(String companyId, @Valid BranchRequestDTO branchDTO) {
+        validateOperatingHours(branchDTO);
         Branch branch = branchMapper.toEntity(branchDTO);
 
         Instant now = Instant.now();
@@ -39,6 +43,10 @@ public class BranchService {
         branch.setUpdatedAt(now);
 
         applyLocation(branch, branchDTO.getLatitude(), branchDTO.getLongitude(), now);
+
+        branch.setRatingAverage(0.0);
+        branch.setRatingCount(0);
+        branch.setRatingSum(0L);
 
         if (branch.getIsActive() == null) {
             branch.setIsActive(true);
@@ -97,6 +105,7 @@ public class BranchService {
     }
 
     public BranchResponseDTO updateBranch(String companyId, String branchId, @Valid BranchRequestDTO branchDTO) {
+        validateOperatingHours(branchDTO);
         Branch originalBranch = branchRepository.getById(companyId, branchId);
         if (originalBranch != null) {
             Branch branch = branchMapper.toEntity(branchDTO);
@@ -115,6 +124,10 @@ public class BranchService {
             } else {
                 applyLocation(branch, branchDTO.getLatitude(), branchDTO.getLongitude(), now);
             }
+
+            branch.setRatingAverage(originalBranch.getRatingAverage());
+            branch.setRatingCount(originalBranch.getRatingCount());
+            branch.setRatingSum(originalBranch.getRatingSum());
 
             branchRepository.save(branch);
             Log.debugf("Updated branch with id: %s", branchId);
@@ -261,8 +274,58 @@ private PublicBranchDTO toPublicBranchDTO(BranchResponseDTO branch) {
     dto.address = branch.getAddress();
     dto.latitude = branch.getLatitude();
     dto.longitude = branch.getLongitude();
+    dto.ratingAverage = branch.getRatingAverage();
+    dto.ratingCount = branch.getRatingCount();
     dto.isActive = branch.getIsActive();
     return dto;
+}
+
+private void validateOperatingHours(BranchRequestDTO dto) {
+    validateTimePair("regular", dto.getRegularOpeningTime(), dto.getRegularClosingTime());
+    validateTimePair("day", dto.getDayOpeningTime(), dto.getDayClosingTime());
+
+    boolean hasDayDate = dto.getDayScheduleDate() != null && !dto.getDayScheduleDate().isBlank();
+    boolean hasDayTimes =
+            (dto.getDayOpeningTime() != null && !dto.getDayOpeningTime().isBlank())
+                    || (dto.getDayClosingTime() != null && !dto.getDayClosingTime().isBlank());
+
+    if (hasDayTimes && !hasDayDate) {
+        throw new BadRequestException("dayScheduleDate is required when day opening/closing times are provided");
+    }
+    if (hasDayDate && !hasDayTimes) {
+        throw new BadRequestException("day opening/closing times are required when dayScheduleDate is provided");
+    }
+
+    if (hasDayDate) {
+        try {
+            LocalDate.parse(dto.getDayScheduleDate());
+        } catch (DateTimeParseException ex) {
+            throw new BadRequestException("dayScheduleDate must be a valid yyyy-MM-dd date");
+        }
+    }
+}
+
+private void validateTimePair(String label, String opening, String closing) {
+    boolean hasOpening = opening != null && !opening.isBlank();
+    boolean hasClosing = closing != null && !closing.isBlank();
+
+    if (hasOpening != hasClosing) {
+        throw new BadRequestException(label + " opening and closing times must both be provided");
+    }
+
+    if (!hasOpening) {
+        return;
+    }
+
+    try {
+        LocalTime open = LocalTime.parse(opening);
+        LocalTime close = LocalTime.parse(closing);
+        if (!open.isBefore(close)) {
+            throw new BadRequestException(label + " opening time must be before closing time");
+        }
+    } catch (DateTimeParseException ex) {
+        throw new BadRequestException(label + " opening/closing times must be valid HH:mm values");
+    }
 }
 
 }

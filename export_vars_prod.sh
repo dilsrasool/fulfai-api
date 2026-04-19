@@ -21,6 +21,7 @@ export CATEGORY_TABLE_NAME="FulfAI-${ENV}-Category"
 export PRODUCT_TABLE_NAME="FulfAI-${ENV}-Product"
 export ORDER_TABLE_NAME="FulfAI-${ENV}-Order"
 export ACCOUNT_TABLE_NAME="FulfAI-${ENV}-Account"
+export BRANCH_REVIEW_TABLE_NAME="FulfAI-${ENV}-BranchReview"
 
 # -----------------------------------------------------------------------------
 # Delivery Partner API - DynamoDB Tables
@@ -70,6 +71,7 @@ echo "  CATEGORY_TABLE_NAME: $CATEGORY_TABLE_NAME"
 echo "  PRODUCT_TABLE_NAME: $PRODUCT_TABLE_NAME"
 echo "  ORDER_TABLE_NAME: $ORDER_TABLE_NAME"
 echo "  ACCOUNT_TABLE_NAME: $ACCOUNT_TABLE_NAME"
+echo "  BRANCH_REVIEW_TABLE_NAME: $BRANCH_REVIEW_TABLE_NAME"
 echo ""
 echo "Delivery Partner API Tables:"
 echo "  DELIVERY_COMPANY_TABLE_NAME: $DELIVERY_COMPANY_TABLE_NAME"

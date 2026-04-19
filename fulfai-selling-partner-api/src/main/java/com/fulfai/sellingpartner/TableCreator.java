@@ -2,6 +2,7 @@ package com.fulfai.sellingpartner;
 
 
 import com.fulfai.sellingpartner.branch.Branch;
+import com.fulfai.sellingpartner.branchreview.BranchReview;
 import com.fulfai.sellingpartner.category.Category;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.product.Product;
@@ -120,6 +121,22 @@ public class TableCreator {
     /* =========================
        BRANCH
     ========================== */
+
+    /*
+     * Branch items now also support operating-hours attributes:
+    * - timezone (IANA timezone)
+    * - weeklySchedule (map: day -> {open, openingTime, closingTime})
+    * - closures (list of maps for date-based closures/holiday overrides)
+     * - regularOpeningTime (HH:mm)
+     * - regularClosingTime (HH:mm)
+     * - dayOpeningTime (HH:mm)
+     * - dayClosingTime (HH:mm)
+     * - dayScheduleDate (yyyy-MM-dd)
+     *
+     * DynamoDB table creation only needs key/index attributes in
+     * attributeDefinitions, so no table-structure migration is needed
+     * for these non-key fields.
+     */
 
     public static void createBranchTable(DynamoDbClient dynamoDbClient, String tableName) {
         if (tableExists(dynamoDbClient, tableName)) return;
@@ -588,6 +605,80 @@ public static void createCompanyJoinRequestTable(
         .billingMode(BillingMode.PAY_PER_REQUEST)
     );
 }
+
+    /* =========================
+       BRANCH REVIEW
+    ========================== */
+
+    public static void createBranchReviewTable(DynamoDbClient dynamoDbClient, String tableName) {
+        if (tableExists(dynamoDbClient, tableName)) return;
+
+        dynamoDbClient.createTable(builder -> builder
+            .tableName(tableName)
+            .keySchema(
+                KeySchemaElement.builder()
+                    .attributeName("branchKey")
+                    .keyType(KeyType.HASH)
+                    .build(),
+                KeySchemaElement.builder()
+                    .attributeName("reviewId")
+                    .keyType(KeyType.RANGE)
+                    .build())
+            .attributeDefinitions(
+                AttributeDefinition.builder()
+                    .attributeName("branchKey")
+                    .attributeType(ScalarAttributeType.S)
+                    .build(),
+                AttributeDefinition.builder()
+                    .attributeName("reviewId")
+                    .attributeType(ScalarAttributeType.S)
+                    .build(),
+                AttributeDefinition.builder()
+                    .attributeName("branchId")
+                    .attributeType(ScalarAttributeType.S)
+                    .build(),
+                AttributeDefinition.builder()
+                    .attributeName("createdAt")
+                    .attributeType(ScalarAttributeType.S)
+                    .build(),
+                AttributeDefinition.builder()
+                    .attributeName("userId")
+                    .attributeType(ScalarAttributeType.S)
+                    .build())
+            .globalSecondaryIndexes(
+                GlobalSecondaryIndex.builder()
+                    .indexName(BranchReview.BY_BRANCH_INDEX)
+                    .keySchema(
+                        KeySchemaElement.builder()
+                            .attributeName("branchId")
+                            .keyType(KeyType.HASH)
+                            .build(),
+                        KeySchemaElement.builder()
+                            .attributeName("createdAt")
+                            .keyType(KeyType.RANGE)
+                            .build())
+                    .projection(Projection.builder()
+                        .projectionType(ProjectionType.ALL)
+                        .build())
+                    .build(),
+                GlobalSecondaryIndex.builder()
+                    .indexName(BranchReview.BY_USER_BRANCH_INDEX)
+                    .keySchema(
+                        KeySchemaElement.builder()
+                            .attributeName("userId")
+                            .keyType(KeyType.HASH)
+                            .build(),
+                        KeySchemaElement.builder()
+                            .attributeName("branchKey")
+                            .keyType(KeyType.RANGE)
+                            .build())
+                    .projection(Projection.builder()
+                        .projectionType(ProjectionType.ALL)
+                        .build())
+                    .build())
+            .billingMode(BillingMode.PAY_PER_REQUEST)
+        );
+    }
 
 
    

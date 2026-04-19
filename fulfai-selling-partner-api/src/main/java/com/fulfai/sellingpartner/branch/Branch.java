@@ -1,6 +1,8 @@
 package com.fulfai.sellingpartner.branch;
 
 import java.time.Instant;
+import java.util.List;
+import java.util.Map;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
@@ -29,6 +31,17 @@ public class Branch {
     private Double longitude;
     private String geoHash5;
     private String geoHash6;
+    private String timezone;
+    private Map<String, Map<String, String>> weeklySchedule;
+    private List<Map<String, String>> closures;
+    private String regularOpeningTime;
+    private String regularClosingTime;
+    private String dayOpeningTime;
+    private String dayClosingTime;
+    private String dayScheduleDate;
+    private Double ratingAverage;
+    private Integer ratingCount;
+    private Long ratingSum;
     private Boolean isActive;
     private Instant createdAt;
     private Instant locationUpdatedAt;
@@ -99,6 +112,61 @@ public class Branch {
     @DynamoDbAttribute("geoHash6")
     public String getGeoHash6() {
         return geoHash6;
+    }
+
+    @DynamoDbAttribute("timezone")
+    public String getTimezone() {
+        return timezone;
+    }
+
+    @DynamoDbAttribute("weeklySchedule")
+    public Map<String, Map<String, String>> getWeeklySchedule() {
+        return weeklySchedule;
+    }
+
+    @DynamoDbAttribute("closures")
+    public List<Map<String, String>> getClosures() {
+        return closures;
+    }
+
+    @DynamoDbAttribute("regularOpeningTime")
+    public String getRegularOpeningTime() {
+        return regularOpeningTime;
+    }
+
+    @DynamoDbAttribute("regularClosingTime")
+    public String getRegularClosingTime() {
+        return regularClosingTime;
+    }
+
+    @DynamoDbAttribute("dayOpeningTime")
+    public String getDayOpeningTime() {
+        return dayOpeningTime;
+    }
+
+    @DynamoDbAttribute("dayClosingTime")
+    public String getDayClosingTime() {
+        return dayClosingTime;
+    }
+
+    @DynamoDbAttribute("dayScheduleDate")
+    public String getDayScheduleDate() {
+        return dayScheduleDate;
+    }
+
+    @DynamoDbAttribute("ratingAverage")
+    public Double getRatingAverage() {
+        return ratingAverage;
+    }
+
+    @DynamoDbAttribute("ratingCount")
+    public Integer getRatingCount() {
+        return ratingCount;
+    }
+
+    @DynamoDbAttribute("ratingSum")
+    public Long getRatingSum() {
+        return ratingSum;
     }
 
     @DynamoDbAttribute("isActive")

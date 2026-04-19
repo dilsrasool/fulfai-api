@@ -7,6 +7,8 @@ public class PublicBranchDTO {
     public String address;
     public Double latitude;
     public Double longitude;
+    public Double ratingAverage;
+    public Integer ratingCount;
     public Double distanceKm;
     public Boolean isActive;
 }

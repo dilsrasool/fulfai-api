@@ -22,6 +22,13 @@ public class BranchResponseDTO {
     private Double longitude;
     private String geoHash5;
     private String geoHash6;
+    private String regularOpeningTime;
+    private String regularClosingTime;
+    private String dayOpeningTime;
+    private String dayClosingTime;
+    private String dayScheduleDate;
+    private Double ratingAverage;
+    private Integer ratingCount;
     private Boolean isActive;
     private Instant createdAt;
     private Instant locationUpdatedAt;

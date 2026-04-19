@@ -12,6 +12,12 @@ public interface BranchMapper {
     @Mapping(target = "branchId", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
+    @Mapping(target = "geoHash5", ignore = true)
+    @Mapping(target = "geoHash6", ignore = true)
+    @Mapping(target = "ratingAverage", ignore = true)
+    @Mapping(target = "ratingCount", ignore = true)
+    @Mapping(target = "ratingSum", ignore = true)
+    @Mapping(target = "locationUpdatedAt", ignore = true)
     Branch toEntity(BranchRequestDTO dto);
 
     BranchResponseDTO toResponseDTO(Branch entity);

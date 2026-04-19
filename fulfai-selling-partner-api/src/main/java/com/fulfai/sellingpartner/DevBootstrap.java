@@ -67,6 +67,9 @@ public class DevBootstrap {
     @ConfigProperty(name = "companyJoinRequest.table.name")
     String companyJoinRequestTableName;
 
+    @ConfigProperty(name = "branchReview.table.name")
+    String branchReviewTableName;
+
     /* =========================
        BUCKET NAMES
     ========================= */
@@ -103,6 +106,7 @@ public class DevBootstrap {
         TableCreator.createAccountTable(dynamoDbClient, accountTableName);
         TableCreator.createUserCompanyRoleTable(dynamoDbClient, userCompanyRoleTableName);
         TableCreator.createCompanyJoinRequestTable(dynamoDbClient, companyJoinRequestTableName);
+        TableCreator.createBranchReviewTable(dynamoDbClient, branchReviewTableName);
 
         Log.info("DynamoDB tables ready");
 

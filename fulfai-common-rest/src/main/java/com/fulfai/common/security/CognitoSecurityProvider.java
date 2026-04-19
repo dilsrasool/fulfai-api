@@ -20,8 +20,9 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
     ) {
 
         String path = event != null ? event.getPath() : null;
+        String method = event != null ? event.getHttpMethod() : null;
 
-        Log.debugf("SECURITY_AUTH: Incoming path=%s", path);
+        Log.debugf("SECURITY_AUTH: Incoming method=%s path=%s", method, path);
 
 
 
@@ -30,6 +31,7 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
         ====================================================== */
 
         if (path != null &&
+                "GET".equalsIgnoreCase(method) &&
                 (
                         path.startsWith("/api/selling-partner/public/products")
                         || path.startsWith("/api/selling-partner/public/companies")
@@ -40,7 +42,8 @@ public class CognitoSecurityProvider implements LambdaIdentityProvider {
         ) {
 
             Log.debugf(
-                    "SECURITY_AUTH: Public browsing endpoint → %s",
+                    "SECURITY_AUTH: Public browsing endpoint → %s %s",
+                    method,
                     path
             );
 

@@ -7,6 +7,7 @@ $env:CATEGORY_TABLE="FulfAI-dev-Category"
 $env:PRODUCT_TABLE="FulfAI-dev-Product"
 $env:ORDER_TABLE="FulfAI-dev-Order"
 $env:ACCOUNT_TABLE="FulfAI-dev-Account"
+$env:BRANCH_REVIEW_TABLE="FulfAI-dev-BranchReview"
 $env:USER_COMPANY_ROLE_TABLE="FulfAI-dev-UserCompanyRole"
 $env:COMPANY_JOIN_REQUEST_TABLE="FulfAI-dev-CompanyJoinRequest"
 
@@ -37,6 +38,7 @@ import java.util.*;
 
 import com.fulfai.sellingpartner.account.Account;
 import com.fulfai.sellingpartner.branch.Branch;
+import com.fulfai.sellingpartner.branchreview.BranchReview;
 import com.fulfai.sellingpartner.category.Category;
 import com.fulfai.sellingpartner.company.Company;
 import com.fulfai.sellingpartner.companyJoinRequest.CompanyJoinRequest;
@@ -71,6 +73,7 @@ public class TestDataSeeder {
     private static final String PRODUCT_TABLE = System.getenv().getOrDefault("PRODUCT_TABLE", "FulfAI-dev-product");
     private static final String ORDER_TABLE = System.getenv().getOrDefault("ORDER_TABLE", "FulfAI-dev-order");
     private static final String ACCOUNT_TABLE = System.getenv().getOrDefault("ACCOUNT_TABLE", "FulfAI-dev-account");
+    private static final String BRANCH_REVIEW_TABLE = System.getenv().getOrDefault("BRANCH_REVIEW_TABLE", "FulfAI-dev-branch_review");
     private static final String USER_COMPANY_ROLE_TABLE = System.getenv().getOrDefault("USER_COMPANY_ROLE_TABLE", "FulfAI-dev-user_company_role");
     private static final String COMPANY_JOIN_REQUEST_TABLE = System.getenv().getOrDefault("COMPANY_JOIN_REQUEST_TABLE", "FulfAI-dev-company_join_request");
 
@@ -89,6 +92,7 @@ public class TestDataSeeder {
         DynamoDbTable<Product> productTable = enhancedClient.table(PRODUCT_TABLE, Schemas.PRODUCT_SCHEMA);
         DynamoDbTable<Order> orderTable = enhancedClient.table(ORDER_TABLE, Schemas.ORDER_SCHEMA);
         DynamoDbTable<Account> accountTable = enhancedClient.table(ACCOUNT_TABLE, Schemas.ACCOUNT_SCHEMA);
+        DynamoDbTable<BranchReview> branchReviewTable = enhancedClient.table(BRANCH_REVIEW_TABLE, Schemas.BRANCH_REVIEW_SCHEMA);
         DynamoDbTable<UserCompanyRole> userCompanyRoleTable = enhancedClient.table(USER_COMPANY_ROLE_TABLE, Schemas.USER_COMPANY_ROLE_SCHEMA);
         DynamoDbTable<CompanyJoinRequest> joinRequestTable = enhancedClient.table(COMPANY_JOIN_REQUEST_TABLE, Schemas.COMPANY_JOIN_REQUEST_SCHEMA);
 
@@ -112,10 +116,13 @@ public class TestDataSeeder {
         // 6) Accounts
         seedAccounts(accountTable, companies);
 
-        // 7) UserCompanyRole
+        // 7) Branch Reviews
+        seedBranchReviews(branchTable, branchReviewTable, companies, companyBranches);
+
+        // 8) UserCompanyRole
         seedUserCompanyRoles(userCompanyRoleTable, companies, companyBranches);
 
-        // 8) Join Requests
+        // 9) Join Requests
         seedJoinRequests(joinRequestTable, companies);
 
         System.out.println("✅ Done. Test data inserted successfully.");
@@ -516,6 +523,72 @@ public class TestDataSeeder {
             }
 
             System.out.println("💰 Inserted Accounts for companyId=" + c.getId());
+        }
+    }
+
+    // =========================
+    // Seed: Branch Reviews
+    // =========================
+    private static void seedBranchReviews(
+            DynamoDbTable<Branch> branchTable,
+            DynamoDbTable<BranchReview> reviewTable,
+            List<Company> companies,
+            Map<String, List<Branch>> companyBranches
+    ) {
+        List<String> users = List.of("cust-100", "cust-101", "cust-102", "cust-103", "cust-104", "cust-105");
+
+        for (Company c : companies) {
+            List<Branch> branches = companyBranches.get(c.getId());
+            int totalForCompany = 0;
+
+            for (Branch branch : branches) {
+                int reviewsCount = 3 + R.nextInt(4); // 3-6 reviews per branch
+                Set<String> usedUsers = new HashSet<>();
+                long ratingSum = 0;
+                int ratingCount = 0;
+
+                for (int i = 0; i < reviewsCount; i++) {
+                    String userId = users.get(R.nextInt(users.size()));
+                    if (usedUsers.contains(userId)) {
+                        continue;
+                    }
+                    usedUsers.add(userId);
+
+                    int rating = 3 + R.nextInt(3); // 3-5
+                    Instant createdAt = Instant.now().minusSeconds(3600L * (1 + R.nextInt(72)));
+
+                    BranchReview review = new BranchReview();
+                    review.setBranchKey(c.getId() + "#" + branch.getBranchId());
+                    review.setReviewId("rev-" + uuid8());
+                    review.setBranchId(branch.getBranchId());
+                    review.setUserId(userId);
+                    review.setUserName("Customer " + userId.substring(userId.length() - 3));
+                    review.setRating(rating);
+                    review.setComment(randomFrom(List.of(
+                            "Great service and fast delivery.",
+                            "Good quality products.",
+                            "Staff was helpful.",
+                            "Nice experience overall.",
+                            "Will order again."
+                    )));
+                    review.setIsDeleted(false);
+                    review.setCreatedAt(createdAt);
+                    review.setUpdatedAt(createdAt);
+
+                    reviewTable.putItem(review);
+                    ratingSum += rating;
+                    ratingCount++;
+                    totalForCompany++;
+                }
+
+                branch.setRatingSum(ratingSum);
+                branch.setRatingCount(ratingCount);
+                branch.setRatingAverage(ratingCount == 0 ? 0.0 : ((double) ratingSum) / ratingCount);
+                branch.setUpdatedAt(Instant.now());
+                branchTable.putItem(branch);
+            }
+
+            System.out.println("⭐ Inserted Branch Reviews for companyId=" + c.getId() + " => " + totalForCompany);
         }
     }
 
