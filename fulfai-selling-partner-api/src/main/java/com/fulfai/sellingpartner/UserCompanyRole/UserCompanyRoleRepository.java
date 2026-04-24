@@ -57,12 +57,31 @@ public class UserCompanyRoleRepository {
             String companyId,
             String branchId
     ) {
-        return table().getItem(
+        String requested = companyId + "#" + (branchId == null ? "ROOT" : branchId);
+
+        UserCompanyRole exact = table().getItem(
                 Key.builder()
                         .partitionValue(userId)
-                        .sortValue(companyId + "#" + (branchId == null ? "ROOT" : branchId))
+                        .sortValue(requested)
                         .build()
         );
+
+        if (exact != null) {
+            return exact;
+        }
+
+        // Backward compatibility for older rows that used COMPANY instead of ROOT.
+        if (branchId == null) {
+            String legacyCompanyKey = companyId + "#COMPANY";
+            return table().getItem(
+                    Key.builder()
+                            .partitionValue(userId)
+                            .sortValue(legacyCompanyKey)
+                            .build()
+            );
+        }
+
+        return null;
     }
 
     public List<UserCompanyRole> getAllByUserId(String userId) {
@@ -159,6 +178,19 @@ public boolean exists(
             );
 
     return role != null;
+}
+
+public boolean hasAnyRoleInCompany(
+                String userId,
+                String companyId
+) {
+        if (userId == null || userId.isBlank() || companyId == null || companyId.isBlank()) {
+                return false;
+        }
+
+        return getAllByUserId(userId)
+                        .stream()
+                        .anyMatch(role -> companyId.equals(role.getCompanyId()));
 }
 
 

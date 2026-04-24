@@ -1,6 +1,8 @@
 package com.fulfai.sellingpartner.publicapi;
 
 import com.fulfai.common.dto.PaginatedResponse;
+import com.fulfai.sellingpartner.order.OrderActionRequestDTO;
+import com.fulfai.sellingpartner.order.OrderActorRole;
 import com.fulfai.sellingpartner.order.OrderResponseDTO;
 import com.fulfai.sellingpartner.order.OrderService;
 import com.fulfai.sellingpartner.publicapi.dto.CreateOrderRequest;
@@ -116,6 +118,37 @@ public class PublicOrderResource {
 
         return order;
     }
+
+
+        // =====================================================
+        // CUSTOMER ACTIONS (LOGIN REQUIRED)
+        // =====================================================
+
+        /**
+         * POST /api/selling-partner/public/orders/{orderId}/actions?companyId=...
+         */
+        @POST
+        @Path("/{orderId}/actions")
+        @RolesAllowed("customer")
+        public OrderResponseDTO applyOrderAction(
+                        @PathParam("orderId") String orderId,
+                        @QueryParam("companyId") String companyId,
+                        OrderActionRequestDTO request
+        ) {
+                String userId = extractUserId();
+
+                OrderResponseDTO order = orderService.getOrderForUser(userId, companyId, orderId);
+                if (order == null) {
+                        throw new NotFoundException("Order not found");
+                }
+
+                return orderService.applyAction(
+                                companyId,
+                                orderId,
+                                request,
+                                userId,
+                                OrderActorRole.CUSTOMER);
+        }
 
 
 

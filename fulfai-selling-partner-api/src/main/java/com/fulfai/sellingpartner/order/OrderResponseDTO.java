@@ -3,6 +3,7 @@ package com.fulfai.sellingpartner.order;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Set;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
@@ -25,7 +26,12 @@ public class OrderResponseDTO {
     private BigDecimal totalAmount;
     private String paymentMethod;
     private String paymentStatus;
+    private String issueStatus;
     private String notes;
+    private Instant etaAt;
+    private Instant slaDeadlineAt;
+    private List<OrderTimelineEvent> timelineEvents;
+    private Set<String> nextAllowedActions;
     private Instant createdAt;
     private Instant updatedAt;
 }

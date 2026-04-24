@@ -11,6 +11,7 @@ import com.fulfai.sellingpartner.company.Company;
 import com.fulfai.sellingpartner.companyJoinRequest.CompanyJoinRequest;
 import com.fulfai.sellingpartner.order.Order;
 import com.fulfai.sellingpartner.order.OrderItem;
+import com.fulfai.sellingpartner.order.OrderTimelineEvent;
 import com.fulfai.sellingpartner.product.Product;
 import com.fulfai.sellingpartner.UserCompanyRole.UserCompanyRole;
 
@@ -19,6 +20,46 @@ import software.amazon.awssdk.enhanced.dynamodb.TableSchema;
 import software.amazon.awssdk.enhanced.dynamodb.mapper.StaticAttributeTags;
 
 public class Schemas {
+
+        public static final TableSchema<OrderTimelineEvent> ORDER_TIMELINE_EVENT_SCHEMA =
+                TableSchema.builder(OrderTimelineEvent.class)
+                        .newItemSupplier(OrderTimelineEvent::new)
+                        .addAttribute(String.class, a -> a.name("eventId")
+                                        .getter(OrderTimelineEvent::getEventId)
+                                        .setter(OrderTimelineEvent::setEventId))
+                        .addAttribute(String.class, a -> a.name("action")
+                                        .getter(OrderTimelineEvent::getAction)
+                                        .setter(OrderTimelineEvent::setAction))
+                        .addAttribute(String.class, a -> a.name("actorId")
+                                        .getter(OrderTimelineEvent::getActorId)
+                                        .setter(OrderTimelineEvent::setActorId))
+                        .addAttribute(String.class, a -> a.name("actorRole")
+                                        .getter(OrderTimelineEvent::getActorRole)
+                                        .setter(OrderTimelineEvent::setActorRole))
+                        .addAttribute(String.class, a -> a.name("fromStatus")
+                                        .getter(OrderTimelineEvent::getFromStatus)
+                                        .setter(OrderTimelineEvent::setFromStatus))
+                        .addAttribute(String.class, a -> a.name("toStatus")
+                                        .getter(OrderTimelineEvent::getToStatus)
+                                        .setter(OrderTimelineEvent::setToStatus))
+                        .addAttribute(String.class, a -> a.name("reasonCode")
+                                        .getter(OrderTimelineEvent::getReasonCode)
+                                        .setter(OrderTimelineEvent::setReasonCode))
+                        .addAttribute(String.class, a -> a.name("note")
+                                        .getter(OrderTimelineEvent::getNote)
+                                        .setter(OrderTimelineEvent::setNote))
+                        .addAttribute(String.class, a -> a.name("idempotencyKey")
+                                        .getter(OrderTimelineEvent::getIdempotencyKey)
+                                        .setter(OrderTimelineEvent::setIdempotencyKey))
+                        .addAttribute(Instant.class, a -> a.name("timestamp")
+                                        .getter(OrderTimelineEvent::getTimestamp)
+                                        .setter(OrderTimelineEvent::setTimestamp))
+                        .addAttribute(
+                                        EnhancedType.mapOf(String.class, String.class),
+                                        a -> a.name("metadata")
+                                                        .getter(OrderTimelineEvent::getMetadata)
+                                                        .setter(OrderTimelineEvent::setMetadata))
+                        .build();
 
        public static final TableSchema<Company> COMPANY_SCHEMA =
         TableSchema.builder(Company.class)
@@ -505,6 +546,40 @@ public static final TableSchema<Category> CATEGORY_SCHEMA =
         .addAttribute(String.class, a -> a.name("paymentStatus")
                 .getter(Order::getPaymentStatus)
                 .setter(Order::setPaymentStatus))
+
+        .addAttribute(String.class, a -> a.name("issueStatus")
+                .getter(Order::getIssueStatus)
+                .setter(Order::setIssueStatus))
+
+        .addAttribute(Instant.class, a -> a.name("etaAt")
+                .getter(Order::getEtaAt)
+                .setter(Order::setEtaAt))
+
+        .addAttribute(Instant.class, a -> a.name("slaDeadlineAt")
+                .getter(Order::getSlaDeadlineAt)
+                .setter(Order::setSlaDeadlineAt))
+
+        .addAttribute(
+                EnhancedType.listOf(
+                        EnhancedType.documentOf(OrderTimelineEvent.class, ORDER_TIMELINE_EVENT_SCHEMA)),
+                a -> a.name("timelineEvents")
+                        .getter(Order::getTimelineEvents)
+                        .setter(Order::setTimelineEvents)
+        )
+
+        .addAttribute(
+                EnhancedType.listOf(String.class),
+                a -> a.name("processedIdempotencyKeys")
+                        .getter(Order::getProcessedIdempotencyKeys)
+                        .setter(Order::setProcessedIdempotencyKeys)
+        )
+
+        .addAttribute(
+                EnhancedType.mapOf(String.class, String.class),
+                a -> a.name("workflowMetadata")
+                        .getter(Order::getWorkflowMetadata)
+                        .setter(Order::setWorkflowMetadata)
+        )
 
         .addAttribute(String.class, a -> a.name("notes")
                 .getter(Order::getNotes)

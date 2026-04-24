@@ -3,6 +3,7 @@ package com.fulfai.sellingpartner.order;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import lombok.Data;
@@ -63,6 +64,18 @@ public class Order {
     private String paymentMethod;
 
     private String paymentStatus;
+
+    private String issueStatus;
+
+    private Instant etaAt;
+
+    private Instant slaDeadlineAt;
+
+    private List<OrderTimelineEvent> timelineEvents;
+
+    private List<String> processedIdempotencyKeys;
+
+    private Map<String, String> workflowMetadata;
 
     private String notes;
 
@@ -178,6 +191,42 @@ public class Order {
     @DynamoDbAttribute("paymentStatus")
     public String getPaymentStatus() {
         return paymentStatus;
+    }
+
+
+    @DynamoDbAttribute("issueStatus")
+    public String getIssueStatus() {
+        return issueStatus;
+    }
+
+
+    @DynamoDbAttribute("etaAt")
+    public Instant getEtaAt() {
+        return etaAt;
+    }
+
+
+    @DynamoDbAttribute("slaDeadlineAt")
+    public Instant getSlaDeadlineAt() {
+        return slaDeadlineAt;
+    }
+
+
+    @DynamoDbAttribute("timelineEvents")
+    public List<OrderTimelineEvent> getTimelineEvents() {
+        return timelineEvents;
+    }
+
+
+    @DynamoDbAttribute("processedIdempotencyKeys")
+    public List<String> getProcessedIdempotencyKeys() {
+        return processedIdempotencyKeys;
+    }
+
+
+    @DynamoDbAttribute("workflowMetadata")
+    public Map<String, String> getWorkflowMetadata() {
+        return workflowMetadata;
     }
 
 

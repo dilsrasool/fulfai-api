@@ -2,6 +2,7 @@ package com.fulfai.sellingpartner.order;
 
 import com.fulfai.common.dto.PaginatedResponse;
 
+import io.quarkus.security.identity.SecurityIdentity;
 import jakarta.inject.Inject;
 import jakarta.validation.Valid;
 import jakarta.ws.rs.*;
@@ -17,6 +18,9 @@ public class OrderResource {
 
     @Inject
     OrderService orderService;
+
+        @Inject
+        SecurityIdentity securityIdentity;
 
 
     // =========================
@@ -79,10 +83,37 @@ public class OrderResource {
             @PathParam("orderId") String orderId
     ) {
 
-        OrderResponseDTO order =
-                orderService.getOrderById(companyId, orderId);
+        String actorId = securityIdentity.getAttribute("sub");
+        OrderActorRole actorRole = resolveActorRole(actorId, companyId, null);
+
+        OrderResponseDTO order = orderService.getOrderForActor(companyId, orderId, actorRole);
 
         return Response.ok(order).build();
+    }
+
+
+    // =========================
+    // ACTIONS (STATE MACHINE)
+    // =========================
+
+    @POST
+    @Path("/{orderId}/actions")
+    public Response applyOrderAction(
+            @PathParam("companyId") String companyId,
+            @PathParam("orderId") String orderId,
+            @Valid OrderActionRequestDTO request
+    ) {
+        String actorId = securityIdentity.getAttribute("sub");
+        OrderActorRole actorRole = resolveActorRole(actorId, companyId, null);
+
+        OrderResponseDTO response = orderService.applyAction(
+                companyId,
+                orderId,
+                request,
+                actorId,
+                actorRole);
+
+        return Response.ok(response).build();
     }
 
 
@@ -120,5 +151,15 @@ public class OrderResource {
 
         return Response.noContent().build();
     }
+
+        private OrderActorRole resolveActorRole(String actorId, String companyId, String branchId) {
+                if (securityIdentity.hasRole("admin") || securityIdentity.hasRole("ADMIN")) {
+                        return OrderActorRole.ADMIN;
+                }
+                if (securityIdentity.hasRole("ops") || securityIdentity.hasRole("OPS")) {
+                        return OrderActorRole.OPS;
+                }
+                return orderService.resolveSellerActorRole(actorId, companyId, branchId);
+        }
 
 }
