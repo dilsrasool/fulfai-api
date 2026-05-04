@@ -15,6 +15,7 @@ import com.fulfai.common.location.GeoHashUtil;
 import com.fulfai.sellingpartner.branch.BranchResponseDTO;
 import com.fulfai.sellingpartner.branch.BranchService;
 import com.fulfai.sellingpartner.publicapi.dto.PublicProductDTO;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 
@@ -32,6 +33,7 @@ public class ProductService {
 
         private static final int DEFAULT_PUBLIC_LIMIT = 20;
         private static final int MAX_PUBLIC_LIMIT = 50;
+        private static final int LOCATION_DISABLED_FETCH_MULTIPLIER = 3;
 
     @Inject
     ProductRepository productRepository;
@@ -44,6 +46,9 @@ public class ProductService {
 
         @Inject
         BranchService branchService;
+
+        @ConfigProperty(name = "selling.location.search.enabled", defaultValue = "1")
+        int locationSearchEnabled;
 
     /* =========================
        CREATE
@@ -477,12 +482,17 @@ public class ProductService {
             Integer limit
     ) {
 
+                int safeLimit = safePublicLimit(limit);
+
+                if (!isLocationSearchEnabled()) {
+                        return getProductsWithoutLocation(companyId, safeLimit);
+                }
+
         if (latitude == null || longitude == null) {
             throw new BadRequestException("latitude and longitude are required");
         }
 
         double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
-        int safeLimit = safePublicLimit(limit);
 
         List<BranchResponseDTO> nearbyBranches =
                 branchService.getNearbyBranchCandidates(companyId, latitude, longitude, safeRadiusKm);
@@ -519,6 +529,31 @@ public class ProductService {
                         .thenComparing(pd -> pd.product().name, String.CASE_INSENSITIVE_ORDER))
                 .limit(safeLimit)
                 .map(ProductDistance::product)
+                .collect(Collectors.toList());
+    }
+
+    private List<PublicProductDTO> getProductsWithoutLocation(String companyId, int safeLimit) {
+        // Fetch all products across all pages when location search disabled
+        List<Product> allProducts = new ArrayList<>();
+        String nextToken = null;
+        int pageSize = 100;
+
+        do {
+            PaginatedResponse<Product> response = (companyId != null && !companyId.isBlank())
+                    ? productRepository.getByCompanyId(companyId, nextToken, pageSize)
+                    : productRepository.scanAll(nextToken, pageSize);
+
+            allProducts.addAll(response.getItems());
+            nextToken = response.getNextToken();
+        } while (nextToken != null);
+
+        return allProducts.stream()
+                .filter(p -> p.getIsActive() == null || Boolean.TRUE.equals(p.getIsActive()))
+                .sorted(Comparator.comparing(
+                        p -> p.getName() == null ? "" : p.getName(),
+                        String.CASE_INSENSITIVE_ORDER))
+                .map(this::toPublicProductDTO)
+                .peek(dto -> dto.distanceKm = null)
                 .collect(Collectors.toList());
     }
 
@@ -597,6 +632,10 @@ public class ProductService {
                         ? DEFAULT_PUBLIC_LIMIT
                         : Math.min(limit, MAX_PUBLIC_LIMIT);
             }
+
+                        private boolean isLocationSearchEnabled() {
+                                return locationSearchEnabled == 1;
+                        }
 
             private record ProductDistance(PublicProductDTO product, Double distanceKm) {}
 }

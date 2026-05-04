@@ -13,6 +13,7 @@ import java.util.stream.Collectors;
 
 import com.fulfai.common.dto.PaginatedResponse;
 import com.fulfai.common.location.GeoHashUtil;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 import io.quarkus.logging.Log;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -31,6 +32,9 @@ public class BranchService {
 
     @Inject
     BranchMapper branchMapper;
+
+    @ConfigProperty(name = "selling.location.search.enabled", defaultValue = "1")
+    int locationSearchEnabled;
 
     public BranchResponseDTO createBranch(String companyId, @Valid BranchRequestDTO branchDTO) {
         validateOperatingHours(branchDTO);
@@ -179,13 +183,19 @@ public List<PublicBranchDTO> getNearbyPublicBranches(
         Double radiusKm,
         Integer limit
 ) {
+    double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
+    int safeLimit = limit == null || limit <= 0 ? 20 : Math.min(limit, 50);
+
+    if (!isLocationSearchEnabled()) {
+        return getNearbyBranchCandidates(companyId, latitude, longitude, safeRadiusKm).stream()
+                .map(this::toPublicBranchDTO)
+                .sorted(Comparator.comparing(dto -> dto.name == null ? "" : dto.name, String.CASE_INSENSITIVE_ORDER))
+                .collect(Collectors.toList());
+    }
 
     if (latitude == null || longitude == null) {
         throw new BadRequestException("latitude and longitude are required");
     }
-
-    double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
-    int safeLimit = limit == null || limit <= 0 ? 20 : Math.min(limit, 50);
 
         return getNearbyBranchCandidates(companyId, latitude, longitude, safeRadiusKm).stream()
             .map(branch -> {
@@ -209,20 +219,23 @@ public List<PublicBranchDTO> getNearbyPublicBranches(
         Double longitude,
         Double radiusKm
     ) {
-
-        if (latitude == null || longitude == null) {
-        throw new BadRequestException("latitude and longitude are required");
-        }
-
         double safeRadiusKm = radiusKm == null || radiusKm <= 0 ? 10.0 : radiusKm;
 
-            String userGeoHash5 = GeoHashUtil.encode(latitude, longitude, 5);
-            Set<String> geoCandidates = new HashSet<>(GeoHashUtil.getNeighbors(userGeoHash5));
-
-            List<BranchResponseDTO> candidateBranches =
+        List<BranchResponseDTO> candidateBranches =
             companyId != null && !companyId.isBlank()
                 ? getAllActiveBranchesByCompany(companyId)
                 : getAllActiveBranchesAcrossAllCompanies();
+
+        if (!isLocationSearchEnabled()) {
+            return candidateBranches;
+        }
+
+        if (latitude == null || longitude == null) {
+            throw new BadRequestException("latitude and longitude are required");
+        }
+
+            String userGeoHash5 = GeoHashUtil.encode(latitude, longitude, 5);
+            Set<String> geoCandidates = new HashSet<>(GeoHashUtil.getNeighbors(userGeoHash5));
 
         return candidateBranches.stream()
                 .filter(branch -> branch.getLatitude() != null && branch.getLongitude() != null)
@@ -243,6 +256,10 @@ public List<PublicBranchDTO> getNearbyPublicBranches(
                 branch.getLatitude(),
                 branch.getLongitude())))
             .collect(Collectors.toList());
+}
+
+private boolean isLocationSearchEnabled() {
+    return locationSearchEnabled == 1;
 }
 
 private void applyLocation(Branch branch, Double latitude, Double longitude, Instant now) {
